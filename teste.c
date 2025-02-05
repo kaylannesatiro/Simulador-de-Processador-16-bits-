@@ -13,13 +13,17 @@ typedef struct Registradores {
     int R7;
 } Registradores;
 
-
 typedef struct flags {
     int S;
     int Z;
     int C;
     int Ov;
 } flags;
+
+typedef struct memoriaPrograma {
+    int endereco;
+    int instrução;
+} memoriaPrograma;
 
 void imprimirFlags(flags flag) {
     printf("Valor das flags: ------------------------\n");
@@ -28,22 +32,19 @@ void imprimirFlags(flags flag) {
     printf("C: %d\n", flag.C);
     printf("Ov: %d\n", flag.Ov);
 }
-void bitsEntre15e12(int num) {
-    printf("Codigo de instrucao: %d\n", num >> 12);
+int bitsEntre15e12(int num) {
+    return num >> 12;
 }
-void bit11(int num) {
-    num = num >> 11; 
-    printf("Codigo da casa 11: %d\n", num &= 0x0001);
-}
-
-void bitsEntre10e8(int num) {
-    num = num >> 8; 
-    printf("Registrador Rd: %d\n", num &= 0x0007);
+int bit11(int num) {
+    return (num >> 11) & 0x0001;
 }
 
-void bitsEntre7e5(int num) {
-    num = num >> 5; 
-    printf("Registrador Rm: %d\n", num &= 0x0007);
+int bitsEntre10e8(int num) {
+    return (num >> 8) & 0x0007;
+}
+
+int bitsEntre7e5(int num) {
+    return (num >> 5) & 0x0007;
 }
 
 void bitsEntre4e2(int num) {
@@ -51,14 +52,15 @@ void bitsEntre4e2(int num) {
     printf("Registrador Rn: %d\n", num &= 0x0007);
 }
 
-void bitsEntre7e0(int num) {
-    printf("Valor Immed: %d\n", num &= 0x00FF);
+int bitsEntre7e0(int num) {
+    return num & 0x00FF;
 }
 
 void bitsEntre4e0(int num) {
     printf("Valor Immed: %d\n", num &= 0x001F);
 }
 
+/*talvez aqui dê erro*/
 void bitsEntre10e2(int num) {
     printf("Valor Immed: %d\n", num &= 0x07FF);
 }
@@ -96,6 +98,17 @@ int oQueEstaSendoFeito(int num) {
 }
 
 
+void decodificacao(int numHexa) {
+    if(bitsEntre15e12(numHexa) == 1) {
+        if(bit11(numHexa) == 0) {
+            printf("MOV Rd0%d, Rm0%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+            return;
+        }
+        printf("MOV Rd0%d, #%d\n", bitsEntre10e8(numHexa) ,bitsEntre7e0(numHexa));
+        
+    }
+}
+
 void mostrarExecucao(int numeroHexa) {
     printf("Numero Hexadecimal: %04X\n", numeroHexa);
     printf("Numero Decimal: %d\n", numeroHexa);
@@ -108,6 +121,9 @@ void mostrarExecucao(int numeroHexa) {
     bitsEntre4e2(numeroHexa);
     bitsEntre7e0(numeroHexa);
     haltOuNop(numeroHexa);
+    bitsEntre4e0(numeroHexa);
+    bitsEntre10e2(numeroHexa);
+    bits1e0(numeroHexa);
 }
 
 
@@ -128,6 +144,8 @@ void lerArquivo(char *nomeArquivo) {
             if(oQueEstaSendoFeito(i)) {
                 unsigned int numeroHexa = strtol(token, NULL, 16);
                 mostrarExecucao(numeroHexa);
+                printf("\n_______________\n");
+                decodificacao(numeroHexa);
             }
             printf("\n_______________\n");
             i++;
@@ -145,6 +163,6 @@ int main() {
     printf("Digite o nome do arquivo: ");
     scanf("%s", nomeArquivo);
     lerArquivo(nomeArquivo);
-
+    memoriaPrograma memoriaPrograma[256];
     Registradores registradores;
 }

@@ -47,9 +47,8 @@ int bitsEntre7e5(int num) {
     return (num >> 5) & 0x0007;
 }
 
-void bitsEntre4e2(int num) {
-    num = num >> 2; 
-    printf("Registrador Rn: %d\n", num &= 0x0007);
+int bitsEntre4e2(int num) {
+    return (num >> 2) & 0x0007;
 }
 
 int bitsEntre7e0(int num) {
@@ -99,14 +98,25 @@ int oQueEstaSendoFeito(int num) {
 
 
 void decodificacao(int numHexa) {
-    if(bitsEntre15e12(numHexa) == 1) {
+    if(bitsEntre15e12(numHexa) == 0b0001) {
         if(bit11(numHexa) == 0) {
-            printf("MOV Rd0%d, Rm0%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+            printf("MOV R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
             return;
         }
-        printf("MOV Rd0%d, #%d\n", bitsEntre10e8(numHexa) ,bitsEntre7e0(numHexa));
-        
+        printf("MOV R%d, #%d\n", bitsEntre10e8(numHexa) ,bitsEntre7e0(numHexa));
+        return;
     }
+
+    if(bitsEntre15e12(numHexa) == 0b0100) {
+        printf("ADD R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+
+    if(bitsEntre15e12(numHexa) == 0b0101) {
+        printf("SUB R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+
 }
 
 void mostrarExecucao(int numeroHexa) {

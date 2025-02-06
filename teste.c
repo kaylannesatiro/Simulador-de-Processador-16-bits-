@@ -13,19 +13,19 @@ typedef struct Registradores {
     int R7;
 } Registradores;
 
-typedef struct flags {
+typedef struct Flags {
     int S;
     int Z;
     int C;
     int Ov;
-} flags;
+} Flags;
 
-typedef struct memoriaPrograma {
+typedef struct MemoriaPrograma {
     int endereco;
     int instrução;
-} memoriaPrograma;
+} MemoriaPrograma;
 
-void imprimirFlags(flags flag) {
+void imprimirFlags(Flags flag) {
     printf("Valor das flags: ------------------------\n");
     printf("S: %d\n", flag.S);
     printf("Z: %d\n", flag.Z);
@@ -137,34 +137,43 @@ void mostrarExecucao(int numeroHexa) {
 }
 
 
-void lerArquivo(char *nomeArquivo) {
+int lerArquivo(char *nomeArquivo, MemoriaPrograma memoriaPrograma[]) {
     FILE *arquivo;
     char linha[256];
     char *token;
     
     strcat(nomeArquivo, ".txt");
     arquivo = fopen(nomeArquivo , "r");
-
+    int j = 0;
     while(!feof(arquivo)) {
         fgets(linha, 256, arquivo);
         token = strtok(linha, ": \n");
         int i = 0;
         while (token != NULL) {
+        
+            unsigned int numeroHexa = strtol(token, NULL, 16);
+            if(i% 2 == 0) {
+                memoriaPrograma[j].endereco = numeroHexa;
+            } else {
+                memoriaPrograma[j].instrução = numeroHexa;
+            }
 
             if(oQueEstaSendoFeito(i)) {
-                unsigned int numeroHexa = strtol(token, NULL, 16);
+                
                 mostrarExecucao(numeroHexa);
                 printf("\n_______________\n");
                 decodificacao(numeroHexa);
             }
+            mostrarExecucao(numeroHexa);
             printf("\n_______________\n");
             i++;
             token = strtok(NULL, ": \n"); 
         }
-
+        j++;
     }
 
     fclose(arquivo);  
+    return j;
 }
 
 int main() {
@@ -172,7 +181,12 @@ int main() {
     char *nomeArquivo;
     printf("Digite o nome do arquivo: ");
     scanf("%s", nomeArquivo);
-    lerArquivo(nomeArquivo);
-    memoriaPrograma memoriaPrograma[256];
+    MemoriaPrograma memoriaPrograma[256];
+    int tam = lerArquivo(nomeArquivo, memoriaPrograma);
     Registradores registradores;
+
+    for (int i = 0; i < tam; i++){
+        printf("%04X:%04X\n", memoriaPrograma[i].endereco, memoriaPrograma[i].instrução);
+    }
+    
 }

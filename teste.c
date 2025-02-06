@@ -22,7 +22,7 @@ typedef struct Flags {
 
 typedef struct MemoriaPrograma {
     int endereco;
-    int instrução;
+    int instrucao;
 } MemoriaPrograma;
 
 void imprimirFlags(Flags flag) {
@@ -116,7 +116,7 @@ void decodificacao(int numHexa) {
         printf("SUB R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
         return;
     }
-
+    printf("Instrução não reconhecida\n");
 }
 
 void mostrarExecucao(int numeroHexa) {
@@ -155,7 +155,7 @@ int lerArquivo(char *nomeArquivo, MemoriaPrograma memoriaPrograma[]) {
             if(i% 2 == 0) {
                 memoriaPrograma[j].endereco = numeroHexa;
             } else {
-                memoriaPrograma[j].instrução = numeroHexa;
+                memoriaPrograma[j].instrucao = numeroHexa;
             }
 
             if(oQueEstaSendoFeito(i)) {
@@ -179,6 +179,9 @@ int lerArquivo(char *nomeArquivo, MemoriaPrograma memoriaPrograma[]) {
 int main() {
 
     char *nomeArquivo;
+    unsigned int PC = 0x0000;
+
+
     printf("Digite o nome do arquivo: ");
     scanf("%s", nomeArquivo);
     MemoriaPrograma memoriaPrograma[256];
@@ -186,7 +189,19 @@ int main() {
     Registradores registradores;
     printf("Valor da memoria do programa: ------------------------\n");
     for (int i = 0; i < tam; i++){
-        printf("%04X:%04X\n", memoriaPrograma[i].endereco, memoriaPrograma[i].instrução);
+        printf("%04X:%04X\n", memoriaPrograma[i].endereco, memoriaPrograma[i].instrucao);
     }
-    
+
+    printf("Intrucoess: ------------------------\n");
+    while(PC != 0x0014) {
+        unsigned int instrucao;
+        for(int i = 0; i < tam; i++) {
+            if(memoriaPrograma[i].endereco == PC) {
+                instrucao = memoriaPrograma[i].instrucao;
+                break;
+            }
+        }
+        PC += 0x0002;
+        decodificacao(instrucao);
+    }
 }

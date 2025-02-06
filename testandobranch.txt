@@ -1,1 +1,53 @@
+ TABELA DE DECODIFICAÇAO:
+
+
+TIPO
+INSTRUÇAO
+BITS
+ -NOP:
+NOP
+15-0
+-HALT:
+HALT
+15-0
+-MOV:
+RD→ RM | RD→ IMMED
+10-8 → 7-5 | 10-8 → 7-0
+-STORE:
+RM → RN | RM → IMMED
+7-5 → 4-2 | 7-5 → 10-8, 4-0
+-LOAD:
+RD → RM
+10-8 → 7-5
+ -ULA:
+ADD, SUB, MUL, AND, ORR, XOR → RD, RM, RN
+NOT → RD, RM
+SHR, SHL → RD, RM, IMMED
+ROR, ROL → RD, RM
+10-8 → 7-5, 4-2
+10-8 → 7-5
+10-8, 7-5, 4-0
+10-8, 7-5
+-PILHA:
+PSH → RN
+POP → RD
+4-2, 1-0: 01
+10-8, 1-0: 10
+-DESVIO:
+JMP, JEQ, JLT, JGT → IMMED
+10-2, 1-0: 00, 01, 10, 11
+
+
+FLUXO DE AÇOES A SEREM FEITAS NO PROGRAMA
+
+O user digita o nome do arquivo;
+
+O programa:
+Le o arquivo e manda o endereco para   ??
+Le o arquivo e pega a instrucao → Decodificaçao
+
+ 
+ 
+
+ 
  

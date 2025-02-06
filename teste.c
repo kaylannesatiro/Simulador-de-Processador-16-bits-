@@ -2,29 +2,25 @@
 #include <string.h>
 #include <stdlib.h>
 
+
+//DEFINE AS STRUCTS; O QUE VAI SER USADO NO FINAL:
+//-------------------------------------------------------------------------//
 typedef struct Registradores {
-    int R0;
-    int R1;
-    int R2;
-    int R3;
-    int R4;
-    int R5;
-    int R6;
-    int R7;
+    int R0, R1, R2, R3, R4, R5, R6, R7;
 } Registradores;
 
+
 typedef struct flags {
-    int S;
-    int Z;
-    int C;
-    int Ov;
+    int S, Z, C, Ov;
 } flags;
 
+//Endereço: PC; Instruçao: IR
 typedef struct memoriaPrograma {
-    int endereco;
-    int instrução;
+    int endereco, instrução;
 } memoriaPrograma;
 
+//-------------------------------------------------------------------------//
+//IMPRIME O VALOR DAS FLAGS: TEMPORARIO
 void imprimirFlags(flags flag) {
     printf("Valor das flags: ------------------------\n");
     printf("S: %d\n", flag.S);
@@ -32,42 +28,52 @@ void imprimirFlags(flags flag) {
     printf("C: %d\n", flag.C);
     printf("Ov: %d\n", flag.Ov);
 }
+//-------------------------------------------------------------------------//
+
+
+//SEPARA OS BITS: RETORNA O BIT NECESSARIO PARA CADA AÇAO DA TABELA
+//-------------------------------------------------------------------------//
+//QUAL INSTRUÇAO:
 int bitsEntre15e12(int num) {
     return num >> 12;
 }
+//QUAL TIPO DE INSTRUÇAO:
 int bit11(int num) {
     return (num >> 11) & 0x0001;
 }
-
+//-------------------------------------------------------------------------//
+//RD: (MOV, LOAD, ULA, POP, ROTATE):
 int bitsEntre10e8(int num) {
     return (num >> 8) & 0x0007;
 }
-
+//RM: (MOV, LOAD, ULA, ROTATE):
 int bitsEntre7e5(int num) {
     return (num >> 5) & 0x0007;
 }
-
+//RN: (ADD, SUB, MUL, AND, ORR, XOR, PSH):
 int bitsEntre4e2(int num) {
     return (num >> 2) & 0x0007;
 }
-
+//-------------------------------------------------------------------------//
+//IMEDIATO(MOV):
 int bitsEntre7e0(int num) {
     return num & 0x00FF;
 }
-
+//IMEDIATO(SHIFT):
 void bitsEntre4e0(int num) {
     printf("Valor Immed: %d\n", num &= 0x001F);
 }
-
-/*talvez aqui dê erro*/
+//IMEDIATO(JUMP):
 void bitsEntre10e2(int num) {
     printf("Valor Immed: %d\n", num &= 0x07FF);
 }
-
+//-------------------------------------------------------------------------//
+//FLAG(PUSH, POP, JUMP):
 void bits1e0(int num) {
     printf("Valor Immed: %d\n", num &= 0x0003);
 }
-
+//-------------------------------------------------------------------------//
+//NOP OU HALT (15-00):
 void haltOuNop(int num){
     if(num == 0xFFFF){
         printf("HALT\n");
@@ -75,6 +81,8 @@ void haltOuNop(int num){
         printf("NOP\n");
     }
 }
+//-------------------------------------------------------------------------//
+
 
 void imprimirBinario(unsigned int num) {
     for(int i = 15; i >= 0; i--) {
@@ -168,7 +176,7 @@ void lerArquivo(char *nomeArquivo) {
 }
 
 int main() {
-
+    
     char *nomeArquivo;
     printf("Digite o nome do arquivo: ");
     scanf("%s", nomeArquivo);

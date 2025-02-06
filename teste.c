@@ -184,7 +184,7 @@ int main() {
     MemoriaPrograma memoriaPrograma[256];
     int tam = lerArquivo(nomeArquivo, memoriaPrograma);
     Registradores registradores;
-
+    printf("Valor da memoria do programa: ------------------------\n");
     for (int i = 0; i < tam; i++){
         printf("%04X:%04X\n", memoriaPrograma[i].endereco, memoriaPrograma[i].instrução);
     }

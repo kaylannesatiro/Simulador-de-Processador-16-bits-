@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 
-//DEFINE AS STRUCTS; O QUE VAI SER USADO NO FINAL:
+//DEFINE AS STRUCTS: O QUE VAI SER USADO NO FINAL:
 //-------------------------------------------------------------------------//
 typedef struct Registradores {
     int R0, R1, R2, R3, R4, R5, R6, R7;
@@ -102,6 +102,8 @@ int oQueEstaSendoFeito(int num) {
     return 1;
 }
 
+//-------------------------------------------------------------------------//
+
 void movRmParaRd(int numHexa, int registradores[]) {
     printf("MOV R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
     registradores[bitsEntre10e8(numHexa)] = registradores[bitsEntre7e5(numHexa)];
@@ -112,7 +114,7 @@ void movImmed(int numHexa, int registradores[]) {
     registradores[bitsEntre10e8(numHexa)] = bitsEntre7e0(numHexa);
 }
 
-
+//-------------------------------------------------------------------------//
 void decodificacao(int numHexa, int registradores[]) {
     if(bitsEntre15e12(numHexa) == 0b0001) {
         if(bit11(numHexa) == 0) {   
@@ -134,28 +136,7 @@ void decodificacao(int numHexa, int registradores[]) {
     }
     printf("Instrução não reconhecida\n");
 }
-
-void mostrarExecucao(int numeroHexa) {
-    
-/*
-
-    printf("Numero Hexadecimal: %04X\n", numeroHexa);
-    printf("Numero Decimal: %d\n", numeroHexa);
-    printf("Numero Binario: ");
-    imprimirBinario(numeroHexa);
-    bitsEntre15e12(numeroHexa);
-    bit11(numeroHexa);
-    bitsEntre10e8(numeroHexa);
-    bitsEntre7e5(numeroHexa);
-    bitsEntre4e2(numeroHexa);
-    bitsEntre7e0(numeroHexa);
-    haltOuNop(numeroHexa);
-    bitsEntre4e0(numeroHexa);
-    bitsEntre10e2(numeroHexa);
-    bits1e0(numeroHexa);
-*/
-}
-
+//-------------------------------------------------------------------------//
 
 int lerArquivo(char *nomeArquivo, MemoriaPrograma memoriaPrograma[]) {
     FILE *arquivo;
@@ -206,4 +187,24 @@ int main() {
     free(nomeArquivo);
     memoriaPrograma memoriaPrograma[256];
     Registradores registradores;
+}
+
+void mostrarExecucao(int numeroHexa) {  
+/*
+
+    printf("Numero Hexadecimal: %04X\n", numeroHexa);
+    printf("Numero Decimal: %d\n", numeroHexa);
+    printf("Numero Binario: ");
+    imprimirBinario(numeroHexa);
+    bitsEntre15e12(numeroHexa);
+    bit11(numeroHexa);
+    bitsEntre10e8(numeroHexa);
+    bitsEntre7e5(numeroHexa);
+    bitsEntre4e2(numeroHexa);
+    bitsEntre7e0(numeroHexa);
+    haltOuNop(numeroHexa);
+    bitsEntre4e0(numeroHexa);
+    bitsEntre10e2(numeroHexa);
+    bits1e0(numeroHexa);
+*/
 }

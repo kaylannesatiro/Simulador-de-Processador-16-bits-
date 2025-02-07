@@ -177,10 +177,11 @@ void lerArquivo(char *nomeArquivo) {
 
 int main() {
     
-    char *nomeArquivo;
     printf("Digite o nome do arquivo: ");
+    char *nomeArquivo = (char*) malloc(50* sizeof(char));
     scanf("%s", nomeArquivo);
     lerArquivo(nomeArquivo);
+    free(nomeArquivo);
     memoriaPrograma memoriaPrograma[256];
     Registradores registradores;
 }

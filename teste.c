@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 typedef struct Registradores {
     int R0;
@@ -13,19 +14,19 @@ typedef struct Registradores {
     int R7;
 } Registradores;
 
-typedef struct flags {
+typedef struct Flags {
     int S;
     int Z;
     int C;
     int Ov;
-} flags;
+} Flags;
 
-typedef struct memoriaPrograma {
+typedef struct MemoriaPrograma {
     int endereco;
-    int instrução;
-} memoriaPrograma;
+    int instrucao;
+} MemoriaPrograma;
 
-void imprimirFlags(flags flag) {
+void imprimirFlags(Flags flag) {
     printf("Valor das flags: ------------------------\n");
     printf("S: %d\n", flag.S);
     printf("Z: %d\n", flag.Z);
@@ -88,22 +89,29 @@ void imprimirBinario(unsigned int num) {
 
 int oQueEstaSendoFeito(int num) {
     if(num % 2 == 0) {
-        printf("Endereco \n");
         return 0;
     }
-    
-    printf("Instrução \n");
     return 1;
 }
 
+void movRmParaRd(int numHexa, int registradores[]) {
+    printf("MOV R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+    registradores[bitsEntre10e8(numHexa)] = registradores[bitsEntre7e5(numHexa)];
+}
 
-void decodificacao(int numHexa) {
+void movImmed(int numHexa, int registradores[]) {
+    printf("MOV R%d, #%d\n", bitsEntre10e8(numHexa), bitsEntre7e0(numHexa));
+    registradores[bitsEntre10e8(numHexa)] = bitsEntre7e0(numHexa);
+}
+
+
+void decodificacao(int numHexa, int registradores[]) {
     if(bitsEntre15e12(numHexa) == 0b0001) {
-        if(bit11(numHexa) == 0) {
-            printf("MOV R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+        if(bit11(numHexa) == 0) {   
+            movRmParaRd(numHexa, registradores);
             return;
         }
-        printf("MOV R%d, #%d\n", bitsEntre10e8(numHexa) ,bitsEntre7e0(numHexa));
+        movImmed(numHexa, registradores);
         return;
     }
 
@@ -116,10 +124,13 @@ void decodificacao(int numHexa) {
         printf("SUB R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
         return;
     }
-
+    printf("Instrução não reconhecida\n");
 }
 
 void mostrarExecucao(int numeroHexa) {
+    
+/*
+
     printf("Numero Hexadecimal: %04X\n", numeroHexa);
     printf("Numero Decimal: %d\n", numeroHexa);
     printf("Numero Binario: ");
@@ -134,45 +145,85 @@ void mostrarExecucao(int numeroHexa) {
     bitsEntre4e0(numeroHexa);
     bitsEntre10e2(numeroHexa);
     bits1e0(numeroHexa);
+*/
 }
 
 
-void lerArquivo(char *nomeArquivo) {
+int lerArquivo(char *nomeArquivo, MemoriaPrograma memoriaPrograma[]) {
     FILE *arquivo;
     char linha[256];
     char *token;
     
     strcat(nomeArquivo, ".txt");
     arquivo = fopen(nomeArquivo , "r");
-
+    int j = 0;
     while(!feof(arquivo)) {
         fgets(linha, 256, arquivo);
         token = strtok(linha, ": \n");
         int i = 0;
         while (token != NULL) {
-
+        
+            unsigned int numeroHexa = strtol(token, NULL, 16);
+            if(i% 2 == 0) {
+                memoriaPrograma[j].endereco = numeroHexa;
+            } else {
+                memoriaPrograma[j].instrucao = numeroHexa;
+            }
+            /*
+            testes
+            
             if(oQueEstaSendoFeito(i)) {
-                unsigned int numeroHexa = strtol(token, NULL, 16);
+                
                 mostrarExecucao(numeroHexa);
                 printf("\n_______________\n");
-                decodificacao(numeroHexa);
+                //decodificacao(numeroHexa);
             }
-            printf("\n_______________\n");
+            */
             i++;
             token = strtok(NULL, ": \n"); 
         }
-
+        j++;
     }
 
     fclose(arquivo);  
+    return j;
 }
 
 int main() {
 
-    char *nomeArquivo;
+    char nomeArquivo[300];
+    unsigned int PC = 0x0000;
+    int registradores[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    int16_t teste = 0b1101;
+    uint16_t teste2 = 0b1101;
+    /*olhar isso*/
+    printf("signed int: %d\n", teste);
+    printf("unsigned int: %u\n", teste2); 
+
     printf("Digite o nome do arquivo: ");
     scanf("%s", nomeArquivo);
-    lerArquivo(nomeArquivo);
-    memoriaPrograma memoriaPrograma[256];
-    Registradores registradores;
+    MemoriaPrograma memoriaPrograma[256];
+    int tam = lerArquivo(nomeArquivo, memoriaPrograma);
+
+    printf("Valor da memoria do programa: ------------------------\n");
+    for (int i = 0; i < tam; i++){
+        printf("%04X:%04X\n", memoriaPrograma[i].endereco, memoriaPrograma[i].instrucao);
+    }
+
+    printf("Intrucoess: ------------------------\n");
+    while(PC != 0x0014) {
+        unsigned int IR;
+        for(int i = 0; i < tam; i++) {
+            if(memoriaPrograma[i].endereco == PC) {
+                IR = memoriaPrograma[i].instrucao;
+                break;
+            }
+        }
+        PC += 0x0002;
+        decodificacao(IR, registradores);
+    }
+
+    for(int i = 0; i < 8; i++) {
+        printf("R%d: %d\n", i, registradores[i]);
+    }
 }

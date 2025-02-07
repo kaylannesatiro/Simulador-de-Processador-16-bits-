@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 
 //DEFINE AS STRUCTS; O QUE VAI SER USADO NO FINAL:
@@ -96,22 +97,29 @@ void imprimirBinario(unsigned int num) {
 
 int oQueEstaSendoFeito(int num) {
     if(num % 2 == 0) {
-        printf("Endereco \n");
         return 0;
     }
-    
-    printf("Instrução \n");
     return 1;
 }
 
+void movRmParaRd(int numHexa, int registradores[]) {
+    printf("MOV R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+    registradores[bitsEntre10e8(numHexa)] = registradores[bitsEntre7e5(numHexa)];
+}
 
-void decodificacao(int numHexa) {
+void movImmed(int numHexa, int registradores[]) {
+    printf("MOV R%d, #%d\n", bitsEntre10e8(numHexa), bitsEntre7e0(numHexa));
+    registradores[bitsEntre10e8(numHexa)] = bitsEntre7e0(numHexa);
+}
+
+
+void decodificacao(int numHexa, int registradores[]) {
     if(bitsEntre15e12(numHexa) == 0b0001) {
-        if(bit11(numHexa) == 0) {
-            printf("MOV R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+        if(bit11(numHexa) == 0) {   
+            movRmParaRd(numHexa, registradores);
             return;
         }
-        printf("MOV R%d, #%d\n", bitsEntre10e8(numHexa) ,bitsEntre7e0(numHexa));
+        movImmed(numHexa, registradores);
         return;
     }
 
@@ -124,10 +132,13 @@ void decodificacao(int numHexa) {
         printf("SUB R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
         return;
     }
-
+    printf("Instrução não reconhecida\n");
 }
 
 void mostrarExecucao(int numeroHexa) {
+    
+/*
+
     printf("Numero Hexadecimal: %04X\n", numeroHexa);
     printf("Numero Decimal: %d\n", numeroHexa);
     printf("Numero Binario: ");
@@ -142,37 +153,48 @@ void mostrarExecucao(int numeroHexa) {
     bitsEntre4e0(numeroHexa);
     bitsEntre10e2(numeroHexa);
     bits1e0(numeroHexa);
+*/
 }
 
 
-void lerArquivo(char *nomeArquivo) {
+int lerArquivo(char *nomeArquivo, MemoriaPrograma memoriaPrograma[]) {
     FILE *arquivo;
     char linha[256];
     char *token;
     
     strcat(nomeArquivo, ".txt");
     arquivo = fopen(nomeArquivo , "r");
-
+    int j = 0;
     while(!feof(arquivo)) {
         fgets(linha, 256, arquivo);
         token = strtok(linha, ": \n");
         int i = 0;
         while (token != NULL) {
-
+        
+            unsigned int numeroHexa = strtol(token, NULL, 16);
+            if(i% 2 == 0) {
+                memoriaPrograma[j].endereco = numeroHexa;
+            } else {
+                memoriaPrograma[j].instrucao = numeroHexa;
+            }
+            /*
+            testes
+            
             if(oQueEstaSendoFeito(i)) {
-                unsigned int numeroHexa = strtol(token, NULL, 16);
+                
                 mostrarExecucao(numeroHexa);
                 printf("\n_______________\n");
-                decodificacao(numeroHexa);
+                //decodificacao(numeroHexa);
             }
-            printf("\n_______________\n");
+            */
             i++;
             token = strtok(NULL, ": \n"); 
         }
-
+        j++;
     }
 
     fclose(arquivo);  
+    return j;
 }
 
 int main() {

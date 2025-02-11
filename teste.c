@@ -10,11 +10,6 @@ typedef struct Flags {
     int Ov;
 } Flags;
 
-typedef struct MemoriaPrograma {
-    int endereco;
-    int instrucao;
-} MemoriaPrograma;
-
 typedef struct MemoriaDados {
     uint8_t dado;
     int possuiDado;
@@ -191,6 +186,30 @@ void xor(int num, int16_t registradores[]) {
     registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] ^ registradores[bitsEntre4e2(num)];
 }
 
+void orr(int num, int16_t registradores[]) {
+    printf("ORR R%d, R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e2(num));
+    registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] | registradores[bitsEntre4e2(num)];
+}
+
+void shr(int num, int16_t registradores[]) {
+    printf("SHR R%d, R%d, #%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e0(num));
+    registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] >> bitsEntre4e0(num);
+}
+
+void shl(int num, int16_t registradores[]) {
+    printf("SHL R%d, R%d, #%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e0(num));
+    registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] << bitsEntre4e0(num);
+}
+
+void ror(int num, int16_t registradores[]) {
+    printf("ROR R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
+    registradores[bitsEntre10e8(num)] = (registradores[bitsEntre7e5(num)] >> 1) | (registradores[bitsEntre7e5(num)] << 15);
+}
+
+void rol(int num, int16_t registradores[]) {
+    printf("ROL R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
+    registradores[bitsEntre10e8(num)] = (registradores[bitsEntre7e5(num)] << 1) | (registradores[bitsEntre7e5(num)] >> 15);
+}
 
 void decodificacao(int numHexa, int16_t registradores[], unsigned int *SP, Stack stack[], MemoriaDados memoriaDeDados[], Flags flags) {
 
@@ -203,29 +222,7 @@ void decodificacao(int numHexa, int16_t registradores[], unsigned int *SP, Stack
         movImmed(numHexa, registradores);
         return;
     }
-
-    //ADD
-    if(bitsEntre15e12(numHexa) == 0b0100) {
-        add(numHexa, registradores);
-        return;
-    }
-    //SUB
-    if(bitsEntre15e12(numHexa) == 0b0101) {
-        sub(numHexa, registradores);
-        return;
-    }
-    //PSH
-    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 0 && (bits1e0(numHexa) == 0b01)) {
-        push(numHexa, registradores, SP, stack);
-        return;
-    }
-
-    //POP
-    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 0 && (bits1e0(numHexa) == 0b10)) {
-        pop(numHexa, registradores, SP, stack);
-        return;
-    }
-
+    
     //STR
     if(bitsEntre15e12(numHexa) == 0b0010) {
        if(bit11(numHexa) == 1) {
@@ -242,21 +239,77 @@ void decodificacao(int numHexa, int16_t registradores[], unsigned int *SP, Stack
         return;
     }
 
+    //ADD
+    if(bitsEntre15e12(numHexa) == 0b0100) {
+        add(numHexa, registradores);
+        return;
+    }
+    //SUB
+    if(bitsEntre15e12(numHexa) == 0b0101) {
+        sub(numHexa, registradores);
+        return;
+    }
+
+
+    
+    //AND 
+    if(bitsEntre15e12(numHexa) == 0b0111) {
+        and(numHexa, registradores);
+        return;
+    }
+    
+    //ORR 
+    if(bitsEntre15e12(numHexa) == 0b1000) {
+        orr(numHexa, registradores);
+        return;
+    }
+    
     //NOT
     if(bitsEntre15e12(numHexa) == 0b1001) {
         not(numHexa, registradores);
         return;
     }
 
-    //AND 
-    if(bitsEntre15e12(numHexa) == 0b0111) {
-        and(numHexa, registradores);
-        return;
-    }
-
     //XOR
     if(bitsEntre15e12(numHexa) == 0b1010) {
         xor(numHexa, registradores);
+        return;
+    }
+
+    //PSH
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 0 && (bits1e0(numHexa) == 0b01)) {
+        push(numHexa, registradores, SP, stack);
+        return;
+    }
+
+    //POP
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 0 && (bits1e0(numHexa) == 0b10)) {
+        pop(numHexa, registradores, SP, stack);
+        return;
+    }
+
+
+    //SHR
+    if(bitsEntre15e12(numHexa) == 0b1011) {
+        shr(numHexa, registradores);
+        return;
+    }
+
+    //SHL
+    if(bitsEntre15e12(numHexa) == 0b1100) {
+        shl(numHexa, registradores);
+        return;
+    }
+
+    //ROR
+    if(bitsEntre15e12(numHexa) == 0b1101) {
+        ror(numHexa, registradores);
+        return;
+    }
+
+    //ROL
+    if(bitsEntre15e12(numHexa) == 0b1110) {
+        rol(numHexa, registradores);
         return;
     }
 
@@ -279,14 +332,14 @@ void mostrarRegistradores(int16_t registradores[]) {
     }
 }
 
-int lerArquivo(char *nomeArquivo, MemoriaPrograma memoriaPrograma[]) {
+uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[]) {
     FILE *arquivo;
     char linha[256];
     char *token;
     
     strcat(nomeArquivo, ".txt");
     arquivo = fopen(nomeArquivo , "r");
-    int j = 0;
+    uint16_t j = 0x0000;
     while(!feof(arquivo)) {
         fgets(linha, 256, arquivo);
         token = strtok(linha, ": \n");
@@ -294,18 +347,20 @@ int lerArquivo(char *nomeArquivo, MemoriaPrograma memoriaPrograma[]) {
         while (token != NULL) {
         
             unsigned int numeroHexa = strtol(token, NULL, 16);
-            if(i% 2 == 0) {
-                memoriaPrograma[j].endereco = numeroHexa;
-            } else {
-                memoriaPrograma[j].instrucao = numeroHexa;
-            }
+            uint8_t primeiraParteInstrucao = numeroHexa;
+            uint8_t segundaParteInstrucao = numeroHexa >> 8;
+
+            if(i% 2 == 1) {
+                memoriaPrograma[j] = primeiraParteInstrucao;
+                memoriaPrograma[j+1] = segundaParteInstrucao;
+            } 
             i++;
             token = strtok(NULL, ": \n"); 
         }
-        j++;
+        j += 0x0002;
     }
 
-    fclose(arquivo);  
+    fclose(arquivo); 
     return j;
 }
 
@@ -313,13 +368,17 @@ int main() {
 
     char nomeArquivo[300];
     unsigned int PC = 0x0000;
-    int16_t registradores[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-    MemoriaPrograma memoriaPrograma[256];
-    MemoriaDados memoriaDeDados[65536];
-    Stack stack[65536];
     unsigned valorSP = 0x8200;
     unsigned int *SP = &valorSP;
+    uint16_t paradaPrograma = 0;
+    uint16_t valorUltimaInstrucao = 0;
+    int16_t registradores[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t memoriaPrograma[65536];
+    MemoriaDados memoriaDeDados[65536];
+    Stack stack[65536];
+    
     Flags flags = {0, 0, 0, 0};
+
 
     for(int i = 0; i < 65536; i++) {
         memoriaDeDados[i].possuiDado = 0;
@@ -328,22 +387,17 @@ int main() {
 
     printf("Digite o nome do arquivo: ");
     scanf("%s", nomeArquivo);
-    int tam = lerArquivo(nomeArquivo, memoriaPrograma);
+    valorUltimaInstrucao = lerArquivo(nomeArquivo, memoriaPrograma);
 
     printf("Valor da memoria do programa: ------------------------\n");
-    for (int i = 0; i < tam; i++){
-        printf("%04X:%04X\n", memoriaPrograma[i].endereco, memoriaPrograma[i].instrucao);
+    for (int i = 0; i < valorUltimaInstrucao; i+=2){
+        printf("%04X:%02X%02X\n", i, memoriaPrograma[i+1], memoriaPrograma[i]);
     }
 
     printf("Intrucoes: ------------------------\n");
-    while(PC != 0x0014) {
+    while(PC != valorUltimaInstrucao) {
         unsigned int IR;
-        for(int i = 0; i < tam; i++) {
-            if(memoriaPrograma[i].endereco == PC) {
-                IR = memoriaPrograma[i].instrucao;
-                break;
-            }
-        }
+        IR = memoriaPrograma[PC] + (memoriaPrograma[PC + 1] << 8);
         PC += 0x0002;
         decodificacao(IR, registradores, SP, stack, memoriaDeDados, flags);
     }

@@ -16,8 +16,7 @@ typedef struct MemoriaDados {
 } MemoriaDados;
 
 typedef struct Stack {
-    int endereco;
-    int dado;
+    uint8_t dado;
     int possuiDado;
 } Stack;
 
@@ -55,20 +54,21 @@ int bitsEntre4e0(int num) {
     return num & 0x001F;
 }
 
-/*talvez aqui dê erro*/
-void bitsEntre10e2(int num) {
-    printf("Valor Immed: %d\n", num &= 0x07FF);
+int bitsEntre10e2(int num) {
+    return (num >> 2) & 0x01FF;
 }
 
 int bits1e0(int num) {
     return num & 0x0003;
 }
 
-void haltOuNop(int num){
+int haltOuNop(int num){
     if(num == 0xFFFF){
         printf("HALT\n");
+        return 1;
     } else if(num == 0x0000){
         printf("NOP\n");
+        return 0;
     }
 }
 
@@ -111,16 +111,20 @@ void sub(int numHexa, int16_t registradores[]) {
 
 void push(int numHexa, int16_t registradores[], unsigned int *SP, Stack stack[]) {
     printf("PUSH R%d\n", bitsEntre4e2(numHexa));
-    stack[*SP].endereco = *SP;
-    stack[*SP].dado = registradores[bitsEntre4e2(numHexa)];
+    uint8_t dadoParaStack1 = registradores[bitsEntre4e2(numHexa)];
+    uint8_t dadoParaStack2 = registradores[bitsEntre4e2(numHexa)] >> 8;
+    stack[*SP].dado = dadoParaStack1;
+    stack[*SP + 1].dado = dadoParaStack2;
     stack[*SP].possuiDado = 1;
+    stack[*SP + 1].possuiDado = 1;
     *SP -= 0x0002;
 }
 
 void pop(int numHexa, int16_t registradores[], unsigned int *SP, Stack stack[]) {
     printf("POP R%d\n", bitsEntre10e8(numHexa));
     *SP += 0x0002;
-    registradores[bitsEntre10e8(numHexa)] = stack[*SP].dado;
+    uint16_t valorParaRegistrador = stack[*SP].dado + (stack[*SP + 1].dado << 8);
+    registradores[bitsEntre10e8(numHexa)] = valorParaRegistrador;
 }
 
 void storeImmed(int numHexa, int16_t registradores[], MemoriaDados memomoriaDeDados[]) {
@@ -129,21 +133,21 @@ void storeImmed(int numHexa, int16_t registradores[], MemoriaDados memomoriaDeDa
     uint16_t fistImmedPart = bitsEntre4e0(numHexa);
     uint16_t secondImmedPart = bitsEntre10e8(numHexa);
     uint16_t immed = (secondImmedPart << 5) + (fistImmedPart);
-    //uint8_t valorParaMEM1 = immed;
-    //uint8_t valorParaMEM2 = immed >> 8;
-    uint16_t valor = registradores[bitsEntre7e5(numHexa)];
-    uint8_t valorParaMEM1 = valor;
-    uint8_t valorParaMEM2 = valor >> 8;
-    printf("STR R%d, #%d\n", bitsEntre7e5(numHexa), immed);
-    int endereco = registradores[bitsEntre7e5(numHexa)];
-    memomoriaDeDados[immed].dado = valorParaMEM1;
-    memomoriaDeDados[immed + 1].dado = valorParaMEM2;
-    memomoriaDeDados[immed].possuiDado = 1;
-    if(immed % 2 == 1) {
-        memomoriaDeDados[immed - 1].possuiDado = 1;
-        memomoriaDeDados[immed + 2].possuiDado = 1;
+    uint8_t valorParaMEM1 = immed;
+    uint8_t valorParaMEM2 = immed >> 8;
+    
+    uint16_t endereco = registradores[bitsEntre7e5(numHexa)];
+
+    printf("STR R%d, #%d\n", endereco, immed);
+
+    memomoriaDeDados[endereco].dado = valorParaMEM1;
+    memomoriaDeDados[endereco + 1].dado = valorParaMEM2;
+    memomoriaDeDados[endereco].possuiDado = 1;
+    if(endereco % 2 == 1) {
+        memomoriaDeDados[endereco - 1].possuiDado = 1;
+        memomoriaDeDados[endereco + 2].possuiDado = 1;
     }
-    memomoriaDeDados[immed + 1].possuiDado = 1;
+    memomoriaDeDados[endereco + 1].possuiDado = 1;
 
 
 }
@@ -211,7 +215,28 @@ void rol(int num, int16_t registradores[]) {
     registradores[bitsEntre10e8(num)] = (registradores[bitsEntre7e5(num)] << 1) | (registradores[bitsEntre7e5(num)] >> 15);
 }
 
-void decodificacao(int numHexa, int16_t registradores[], unsigned int *SP, Stack stack[], MemoriaDados memoriaDeDados[], Flags flags) {
+void jump(int num, unsigned int *PC, uint16_t *paradaPrograma) {
+    printf("JMP #%04X\n", bitsEntre10e2(num));
+    if(bitsEntre10e2(num) == *PC - 0x0002) {
+        *paradaPrograma = 1;
+        return;
+    }
+    *PC = bitsEntre10e2(num);
+}
+
+void decodificador(int numHexa, int16_t registradores[], unsigned int *SP, Stack stack[], 
+                    MemoriaDados memoriaDeDados[], Flags flags, uint16_t *paradaPrograma, unsigned *PC) {
+
+    //NOP and HALT
+    if(numHexa == 0xFFFF || numHexa == 0x0000) {
+        if(haltOuNop(numHexa)) {
+            *paradaPrograma = 1;
+            return;
+        }
+
+        //printarPrograma();
+        return;
+    }
 
     //MOV
     if(bitsEntre15e12(numHexa) == 0b0001) {
@@ -288,6 +313,35 @@ void decodificacao(int numHexa, int16_t registradores[], unsigned int *SP, Stack
         return;
     }
 
+    //CMP 
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 0 && (bits1e0(numHexa) == 0b11)) {
+        printf("CMP R%d, R%d\n", bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+
+    //JMP
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b00)) {
+        jump(numHexa, PC, paradaPrograma);
+        return;
+    }
+
+    //JEQ
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b01)) {
+        printf("JEQ #%04X\n", bitsEntre10e2(numHexa));
+        return;
+    }
+
+    //JLT
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b10)) {
+        printf("JLT #%04X\n", bitsEntre10e2(numHexa));
+        return;
+    }
+
+    //JGT
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b11)) {
+        printf("JGT #%04X\n", bitsEntre10e2(numHexa));
+        return;
+    }
 
     //SHR
     if(bitsEntre15e12(numHexa) == 0b1011) {
@@ -318,9 +372,9 @@ void decodificacao(int numHexa, int16_t registradores[], unsigned int *SP, Stack
 
 void mostrarStack(Stack stack[]) {
     printf("Stack: ------------------------\n");
-    for(int i = 65536; i >= 0; i--) {
+    for(int i = 0; i < 65536; i+=0x0002) {
         if(stack[i].possuiDado) {
-            printf("%04X: %04X\n", stack[i].endereco, stack[i].dado);
+            printf("%04X: %02X%02X\n", i, stack[i+1].dado, stack[i].dado);
         }
     }
 }
@@ -368,9 +422,11 @@ int main() {
 
     char nomeArquivo[300];
     unsigned int PC = 0x0000;
+    unsigned int *PCPointer = &PC;
     unsigned valorSP = 0x8200;
     unsigned int *SP = &valorSP;
     uint16_t paradaPrograma = 0;
+    uint16_t *paradaProgramaPointer = &paradaPrograma;
     uint16_t valorUltimaInstrucao = 0;
     int16_t registradores[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t memoriaPrograma[65536];
@@ -378,7 +434,6 @@ int main() {
     Stack stack[65536];
     
     Flags flags = {0, 0, 0, 0};
-
 
     for(int i = 0; i < 65536; i++) {
         memoriaDeDados[i].possuiDado = 0;
@@ -399,16 +454,18 @@ int main() {
         unsigned int IR;
         IR = memoriaPrograma[PC] + (memoriaPrograma[PC + 1] << 8);
         PC += 0x0002;
-        decodificacao(IR, registradores, SP, stack, memoriaDeDados, flags);
+        decodificador(IR, registradores, SP, stack, memoriaDeDados, flags, paradaProgramaPointer, PCPointer);
+        if(paradaPrograma == 1) {
+            break;
+        }
     }
 
     
     mostrarStack(stack);
     mostrarRegistradores(registradores);
-
     printf("Memoria de dados: ------------------------\n");
     
-    for(int i = 0; i < 65536; i+=2) {
+    for(int i = 0; i < 65536; i+=0x0002) {
         if(memoriaDeDados[i].possuiDado) {
             printf("%04X: %02X%02x\n", i, memoriaDeDados[i+1].dado, memoriaDeDados[i].dado);
         }

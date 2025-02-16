@@ -110,7 +110,7 @@ void movRmParaRd(int numHexa, uint16_t registradores[]) {
 }
 
 void movImmed(int numHexa, uint16_t registradores[]) {
-    printf("MOV R%d, #%d\n", bitsEntre10e8(numHexa), bitsEntre7e0(numHexa));
+    printf("MOV R%d, #%04X\n", bitsEntre10e8(numHexa), bitsEntre7e0(numHexa));
     registradores[bitsEntre10e8(numHexa)] = bitsEntre7e0(numHexa);
 }
 
@@ -287,6 +287,9 @@ void cmp(int num, uint16_t registradores[], Flags *flags) {
     uint16_t valorRm = registradores[bitsEntre4e2(num)];
     uint16_t resultado = valorRd - valorRm;
     int16_t resultadoSinalisado = resultado;
+
+    zerarFlags(flags);
+
     if(resultado > 0xFFFF) {
         flags->C = 1;
     }
@@ -312,6 +315,35 @@ void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
         return;
     }
     if(flags->Z == 1 && flags->S == 0) {
+        *PC = bitsEntre10e2(num);
+        return;
+    }
+
+}
+
+void jlt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
+    printf("JLT #%04X\n", bitsEntre10e2(num));
+
+    if(*PC == bitsEntre10e2(num) && flags->Z == 0 && flags->S == 1) {
+        *paradaPrograma = 1;
+        return;
+    }
+    if(flags->Z == 0 && flags->S == 1) {
+        *PC = bitsEntre10e2(num);
+        return;
+    }
+
+}
+
+
+void jgt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
+    printf("JGT #%04X\n", bitsEntre10e2(num));
+
+    if(*PC == bitsEntre10e2(num) && flags->Z == 0 && flags->S == 0) {
+        *paradaPrograma = 1;
+        return;
+    }
+    if(flags->Z == 0 && flags->S == 0) {
         *PC = bitsEntre10e2(num);
         return;
     }
@@ -408,6 +440,8 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
         return;
     }
 
+    //MUL
+    
 
     
     //AND 
@@ -466,13 +500,13 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
 
     //JLT
     if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b10)) {
-        printf("JLT #%04X\n", bitsEntre10e2(numHexa));
+        jlt(numHexa, PC, paradaPrograma, flagsPointer);
         return;
     }
 
     //JGT
     if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b11)) {
-        printf("JGT #%04X\n", bitsEntre10e2(numHexa));
+        jgt(numHexa, PC, paradaPrograma, flagsPointer);
         return;
     }
 
@@ -593,23 +627,7 @@ int main() {
             break;
         }
     }
+    printf("\nFim do Programa ----------------------\n");
+    printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, stack, memoriaDeDados, flags, paradaProgramaPointer, PCPointer, flagsPointer);
 
-    //printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, stack, memoriaDeDados, flags, paradaProgramaPointer, PCPointer, flagsPointer);
-    
-   /*
-    mostrarStack(stack);
-    mostrarRegistradores(registradores);
-    printf("Memoria de dados: ------------------------\n");
-    
-    for(int i = 0; i < 65536; i+=0x0002) {
-        if(memoriaDeDados[i].possuiDado) {
-            printf("%04X: %02X%02x\n", i, memoriaDeDados[i+1].dado, memoriaDeDados[i].dado);
-        }
-    }
-
-    printf("\nSP e PC ----------------------\n");
-    printf("SP: %04X\n", *SP);
-    printf("PC: %04X\n", PC);
-    imprimirFlags(flags);
-    */
 }

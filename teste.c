@@ -21,7 +21,7 @@ typedef struct Stack {
 } Stack;
 
 void imprimirFlags(Flags flag) {
-    printf("Valor das flags: ------------------------\n");
+    printf("\nValor das flags: ------------------------\n\n");
     printf("S: %d\n", flag.S);
     printf("Z: %d\n", flag.Z);
     printf("C: %d\n", flag.C);
@@ -82,6 +82,14 @@ void imprimirBinario(unsigned int num) {
     printf("\n");
 }
 
+uint16_t complementoDois16bits(uint16_t num) {
+    return ~num + 1;
+}
+
+uint8_t complementoDois8bits(uint16_t num) {
+    return ~num + 1;
+}
+
 int oQueEstaSendoFeito(int num) {
     if(num % 2 == 0) {
         return 0;
@@ -89,27 +97,85 @@ int oQueEstaSendoFeito(int num) {
     return 1;
 }
 
-void movRmParaRd(int numHexa, int16_t registradores[]) {
+void zerarFlags(Flags *flags) {
+    flags->S = 0;
+    flags->Z = 0;
+    flags->C = 0;
+    flags->Ov = 0;
+}
+
+void movRmParaRd(int numHexa, uint16_t registradores[]) {
     printf("MOV R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
     registradores[bitsEntre10e8(numHexa)] = registradores[bitsEntre7e5(numHexa)];
 }
 
-void movImmed(int numHexa, int16_t registradores[]) {
+void movImmed(int numHexa, uint16_t registradores[]) {
     printf("MOV R%d, #%d\n", bitsEntre10e8(numHexa), bitsEntre7e0(numHexa));
     registradores[bitsEntre10e8(numHexa)] = bitsEntre7e0(numHexa);
 }
 
-void add(int numHexa, int16_t registradores[]) {
+void add(int numHexa, uint16_t registradores[], Flags *flags) {
     printf("ADD R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
-    registradores[bitsEntre10e8(numHexa)] = registradores[bitsEntre7e5(numHexa)] + registradores[bitsEntre4e2(numHexa)];
+
+
+    uint16_t valorRd = registradores[bitsEntre7e5(numHexa)];
+    int16_t valorRdSinalizado = valorRd;
+    
+    uint16_t valorRm = registradores[bitsEntre4e2(numHexa)];
+    int16_t valorRmSinalizado = valorRm;
+
+    uint16_t resultado = valorRd + valorRm;
+    int16_t resultadoSinalizado = resultado;
+
+    zerarFlags(flags);
+
+    if(valorRd + valorRm > 0xFFFF) {
+        flags->C = 1;
+    }
+
+    if(resultado > 0x7FFF || 
+        (valorRdSinalizado > 0 && valorRmSinalizado > 0 && resultadoSinalizado < 0) || 
+        (valorRdSinalizado < 0 && valorRmSinalizado < 0 && resultadoSinalizado > 0)) {
+        flags->Ov = 1;
+    }
+
+    if(resultado == 0) {
+        flags->Z = 1;
+    }
+
+    if(resultadoSinalizado < 0) {
+        flags->S = 1;
+    }
+
+    registradores[bitsEntre10e8(numHexa)] = resultado;
 }
 
-void sub(int numHexa, int16_t registradores[]) {
+void sub(int numHexa, uint16_t registradores[], Flags *flags) {
     printf("SUB R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
-    registradores[bitsEntre10e8(numHexa)] = registradores[bitsEntre7e5(numHexa)] - registradores[bitsEntre4e2(numHexa)];
+    uint16_t valorRd = registradores[bitsEntre7e5(numHexa)];;
+    uint16_t valorRm = registradores[bitsEntre4e2(numHexa)];
+    uint16_t resultado = valorRd - valorRm;
+    int16_t resultadoSinalisado = resultado;
+    if(resultado > 0xFFFF) {
+        flags->C = 1;
+    }
+
+    if(resultado > 0x7FFF || resultadoSinalisado < -0x8000) {
+        flags->Ov = 1;
+    }
+
+    if(resultado == 0) {
+        flags->Z = 1;
+    }
+
+    if(resultadoSinalisado < 0) {
+        flags->S = 1;
+    }
+
+    registradores[bitsEntre10e8(numHexa)] = resultado;
 }
 
-void push(int numHexa, int16_t registradores[], unsigned int *SP, Stack stack[]) {
+void push(int numHexa, uint16_t registradores[], unsigned int *SP, Stack stack[]) {
     printf("PUSH R%d\n", bitsEntre4e2(numHexa));
     uint8_t dadoParaStack1 = registradores[bitsEntre4e2(numHexa)];
     uint8_t dadoParaStack2 = registradores[bitsEntre4e2(numHexa)] >> 8;
@@ -120,14 +186,14 @@ void push(int numHexa, int16_t registradores[], unsigned int *SP, Stack stack[])
     *SP -= 0x0002;
 }
 
-void pop(int numHexa, int16_t registradores[], unsigned int *SP, Stack stack[]) {
+void pop(int numHexa, uint16_t registradores[], unsigned int *SP, Stack stack[]) {
     printf("POP R%d\n", bitsEntre10e8(numHexa));
     *SP += 0x0002;
     uint16_t valorParaRegistrador = stack[*SP].dado + (stack[*SP + 1].dado << 8);
     registradores[bitsEntre10e8(numHexa)] = valorParaRegistrador;
 }
 
-void storeImmed(int numHexa, int16_t registradores[], MemoriaDados memomoriaDeDados[]) {
+void storeImmed(int numHexa, uint16_t registradores[], MemoriaDados memomoriaDeDados[]) {
    
     
     uint16_t fistImmedPart = bitsEntre4e0(numHexa);
@@ -152,7 +218,7 @@ void storeImmed(int numHexa, int16_t registradores[], MemoriaDados memomoriaDeDa
 
 }
 
-void storeRd(int num, int16_t registradores[], MemoriaDados memoriaDeDados[]) {
+void storeRd(int num, uint16_t registradores[], MemoriaDados memoriaDeDados[]) {
     printf("STR [R%d], R%d\n", bitsEntre7e5(num), bitsEntre4e2(num));
     int endereco = registradores[bitsEntre7e5(num)];
     int16_t valor = registradores[bitsEntre4e2(num)];
@@ -168,51 +234,88 @@ void storeRd(int num, int16_t registradores[], MemoriaDados memoriaDeDados[]) {
     memoriaDeDados[endereco + 1].possuiDado = 1;
 }
 
-void load(int num, int16_t registradores[], MemoriaDados memoriaDeDados[]) {
+void load(int num, uint16_t registradores[], MemoriaDados memoriaDeDados[]) {
     printf("LDR R%d, [R%d]\n", bitsEntre10e8(num), bitsEntre7e5(num));
     int endereco = registradores[bitsEntre7e5(num)];
     int16_t valor = memoriaDeDados[endereco].dado + (memoriaDeDados[endereco + 1].dado << 8);
     registradores[bitsEntre10e8(num)] = valor;
 }
 
-void not(int num, int16_t registradores[]) {
+void not(int num, uint16_t registradores[]) {
     printf("NOT R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
     registradores[bitsEntre10e8(num)] = ~registradores[bitsEntre7e5(num)];
 }
 
-void and(int num, int16_t registradores[]) {
+void and(int num, uint16_t registradores[]) {
     printf("AND R%d, R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e2(num));
     registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] & registradores[bitsEntre4e2(num)];
 }
 
-void xor(int num, int16_t registradores[]) {
+void xor(int num, uint16_t registradores[]) {
     printf("XOR R%d, R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e2(num));
     registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] ^ registradores[bitsEntre4e2(num)];
 }
 
-void orr(int num, int16_t registradores[]) {
+void orr(int num, uint16_t registradores[]) {
     printf("ORR R%d, R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e2(num));
     registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] | registradores[bitsEntre4e2(num)];
 }
 
-void shr(int num, int16_t registradores[]) {
+void shr(int num, uint16_t registradores[]) {
     printf("SHR R%d, R%d, #%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e0(num));
     registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] >> bitsEntre4e0(num);
 }
 
-void shl(int num, int16_t registradores[]) {
+void shl(int num, uint16_t registradores[]) {
     printf("SHL R%d, R%d, #%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e0(num));
     registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] << bitsEntre4e0(num);
 }
 
-void ror(int num, int16_t registradores[]) {
+void ror(int num, uint16_t registradores[]) {
     printf("ROR R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
     registradores[bitsEntre10e8(num)] = (registradores[bitsEntre7e5(num)] >> 1) | (registradores[bitsEntre7e5(num)] << 15);
 }
 
-void rol(int num, int16_t registradores[]) {
+void rol(int num, uint16_t registradores[]) {
     printf("ROL R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
     registradores[bitsEntre10e8(num)] = (registradores[bitsEntre7e5(num)] << 1) | (registradores[bitsEntre7e5(num)] >> 15);
+}
+
+void cmp(int num, uint16_t registradores[], Flags *flags) {
+    printf("CMP R%d, R%d\n", bitsEntre7e5(num), bitsEntre4e2(num));
+    uint16_t valorRd = registradores[bitsEntre7e5(num)];
+    uint16_t valorRm = registradores[bitsEntre4e2(num)];
+    uint16_t resultado = valorRd - valorRm;
+    int16_t resultadoSinalisado = resultado;
+    if(resultado > 0xFFFF) {
+        flags->C = 1;
+    }
+
+    if(resultado > 0x7FFF || resultadoSinalisado < -0x8000) {
+        flags->Ov = 1;
+    }
+
+    if(resultado == 0) {
+        flags->Z = 1;
+    }
+
+    if(resultadoSinalisado < 0) {
+        flags->S = 1;
+    }
+}
+
+void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
+    printf("JEQ #%04X\n", bitsEntre10e2(num));
+
+    if(*PC == bitsEntre10e2(num) && flags->Z == 1 && flags->S == 0) {
+        *paradaPrograma = 1;
+        return;
+    }
+    if(flags->Z == 1 && flags->S == 0) {
+        *PC = bitsEntre10e2(num);
+        return;
+    }
+
 }
 
 void jump(int num, unsigned int *PC, uint16_t *paradaPrograma) {
@@ -224,8 +327,39 @@ void jump(int num, unsigned int *PC, uint16_t *paradaPrograma) {
     *PC = bitsEntre10e2(num);
 }
 
-void decodificador(int numHexa, int16_t registradores[], unsigned int *SP, Stack stack[], 
-                    MemoriaDados memoriaDeDados[], Flags flags, uint16_t *paradaPrograma, unsigned *PC) {
+void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, uint16_t registradores[], 
+                    unsigned int *SP, Stack stack[], MemoriaDados memoriaDeDados[], Flags flags, uint16_t *paradaPrograma,
+                    unsigned *PC, Flags *flagsPointer) {
+
+
+    printf("\nValor do SP e PC ----------------------\n\n");
+    printf("SP: %04X\nPC: %04X\n", *SP, *PC);
+    printf("\nRegistradores: ------------------------\n\n");
+    for(int i = 0; i < 8; i++) {
+        printf("R%d: %04X\n", i, registradores[i]);
+    }
+
+    printf("\nStack: ------------------------\n\n");
+    for(int i = 0; i < 65536; i+=0x0002) {
+        if(stack[i].possuiDado) {
+            printf("%04X: %02X%02X\n", i, stack[i+1].dado, stack[i].dado);
+        }
+    }
+    
+    printf("\nMemoria de dados: ------------------------\n\n");
+    for(int i = 0; i < 65536; i+=0x0002) {
+        if(memoriaDeDados[i].possuiDado) {
+            printf("%04X: %02X%02x\n", i, memoriaDeDados[i+1].dado, memoriaDeDados[i].dado);
+        }
+    }
+
+    imprimirFlags(flags);
+
+}
+
+void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stack stack[], 
+                    MemoriaDados memoriaDeDados[], Flags flags, uint16_t *paradaPrograma,
+                    unsigned *PC, Flags *flagsPointer, uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao) {
 
     //NOP and HALT
     if(numHexa == 0xFFFF || numHexa == 0x0000) {
@@ -233,8 +367,7 @@ void decodificador(int numHexa, int16_t registradores[], unsigned int *SP, Stack
             *paradaPrograma = 1;
             return;
         }
-
-        //printarPrograma();
+        printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, stack, memoriaDeDados, flags, paradaPrograma, PC, flagsPointer);
         return;
     }
 
@@ -266,12 +399,12 @@ void decodificador(int numHexa, int16_t registradores[], unsigned int *SP, Stack
 
     //ADD
     if(bitsEntre15e12(numHexa) == 0b0100) {
-        add(numHexa, registradores);
+        add(numHexa, registradores, flagsPointer);
         return;
     }
     //SUB
     if(bitsEntre15e12(numHexa) == 0b0101) {
-        sub(numHexa, registradores);
+        sub(numHexa, registradores, flagsPointer);
         return;
     }
 
@@ -327,7 +460,7 @@ void decodificador(int numHexa, int16_t registradores[], unsigned int *SP, Stack
 
     //JEQ
     if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b01)) {
-        printf("JEQ #%04X\n", bitsEntre10e2(numHexa));
+        jeq(numHexa, PC, paradaPrograma, flagsPointer);
         return;
     }
 
@@ -379,7 +512,7 @@ void mostrarStack(Stack stack[]) {
     }
 }
 
-void mostrarRegistradores(int16_t registradores[]) {
+void mostrarRegistradores(uint16_t registradores[]) {
     printf("Registradores: ------------------------\n");
     for(int i = 0; i < 8; i++) {
         printf("R%d: %04X\n", i, registradores[i]);
@@ -428,12 +561,13 @@ int main() {
     uint16_t paradaPrograma = 0;
     uint16_t *paradaProgramaPointer = &paradaPrograma;
     uint16_t valorUltimaInstrucao = 0;
-    int16_t registradores[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    uint16_t registradores[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t memoriaPrograma[65536];
     MemoriaDados memoriaDeDados[65536];
     Stack stack[65536];
     
     Flags flags = {0, 0, 0, 0};
+    Flags *flagsPointer = &flags;
 
     for(int i = 0; i < 65536; i++) {
         memoriaDeDados[i].possuiDado = 0;
@@ -454,13 +588,15 @@ int main() {
         unsigned int IR;
         IR = memoriaPrograma[PC] + (memoriaPrograma[PC + 1] << 8);
         PC += 0x0002;
-        decodificador(IR, registradores, SP, stack, memoriaDeDados, flags, paradaProgramaPointer, PCPointer);
+        decodificador(IR, registradores, SP, stack, memoriaDeDados, flags, paradaProgramaPointer, PCPointer, flagsPointer, memoriaPrograma, valorUltimaInstrucao);
         if(paradaPrograma == 1) {
             break;
         }
     }
 
+    //printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, stack, memoriaDeDados, flags, paradaProgramaPointer, PCPointer, flagsPointer);
     
+   /*
     mostrarStack(stack);
     mostrarRegistradores(registradores);
     printf("Memoria de dados: ------------------------\n");
@@ -475,4 +611,5 @@ int main() {
     printf("SP: %04X\n", *SP);
     printf("PC: %04X\n", PC);
     imprimirFlags(flags);
+    */
 }

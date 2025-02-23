@@ -163,7 +163,7 @@ void sub(int numHexa, uint16_t registradores[], Flags *flags) {
 
     zerarFlags(flags);
 
-    if(valorRd < valorRmSinalizado) {
+    if(valorRd + valorRm > 0xFFFF) {
         flags->C = 1;
     }
 
@@ -287,44 +287,262 @@ void load(int num, uint16_t registradores[], MemoriaDados memoriaDeDados[]) {
     registradores[bitsEntre10e8(num)] = valor;
 }
 
-void not(int num, uint16_t registradores[]) {
+void not(int num, uint16_t registradores[], Flags *flags) {
     printf("NOT R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
-    registradores[bitsEntre10e8(num)] = ~registradores[bitsEntre7e5(num)];
+
+    zerarFlags(flags);
+
+    uint16_t valorFinal =  ~registradores[bitsEntre7e5(num)];
+    int16_t valorFinalSinalizado = valorFinal;
+    
+    if(valorFinal > 0xFFFF)  {
+        flags->C = 1;
+    }
+
+    if (valorFinal > 0x7FFF) {
+        flags->Ov = 1; 
+    }
+
+    if(valorFinal == 0) {
+        flags->Z = 1;
+    }
+
+    if(valorFinalSinalizado < 0) {
+        flags->S = 1;
+    }
+
+
+    registradores[bitsEntre10e8(num)] = valorFinal;
 }
 
-void and(int num, uint16_t registradores[]) {
+void and(int num, uint16_t registradores[], Flags *flags) {
     printf("AND R%d, R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e2(num));
-    registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] & registradores[bitsEntre4e2(num)];
+    zerarFlags(flags);
+
+    uint16_t valorFinal = registradores[bitsEntre7e5(num)] & registradores[bitsEntre4e2(num)];
+    int16_t valorFinalSinalizado = valorFinal;
+
+    uint16_t valorRd = registradores[bitsEntre7e5(num)];
+    int16_t valorRdSinalizado = valorRd;
+    
+    uint16_t valorRm = registradores[bitsEntre4e2(num)];
+    int16_t valorRmSinalizado = valorRm;
+    
+    if(valorFinal > 0xFFFF)  {
+        flags->C = 1;
+    }
+
+    if (valorFinal > 0x7FFF || 
+        (valorRdSinalizado > 0 && valorRmSinalizado > 0 && valorFinalSinalizado < 0) || 
+        (valorRdSinalizado < 0 && valorRmSinalizado < 0 && valorFinalSinalizado > 0)) {
+        flags->Ov = 1; 
+    }
+
+    if(valorFinal == 0) {
+        flags->Z = 1;
+    }
+
+    if(valorFinalSinalizado < 0) {
+        flags->S = 1;
+    }
+
+    
+    registradores[bitsEntre10e8(num)] = valorFinal;
 }
 
-void xor(int num, uint16_t registradores[]) {
+void xor(int num, uint16_t registradores[], Flags *flags) {
     printf("XOR R%d, R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e2(num));
-    registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] ^ registradores[bitsEntre4e2(num)];
+    zerarFlags(flags);
+
+    uint16_t valorFinal = registradores[bitsEntre7e5(num)] ^ registradores[bitsEntre4e2(num)];
+    int16_t valorFinalSinalizado = valorFinal;
+
+    uint16_t valorRd = registradores[bitsEntre7e5(num)];
+    int16_t valorRdSinalizado = valorRd;
+    
+    uint16_t valorRm = registradores[bitsEntre4e2(num)];
+    int16_t valorRmSinalizado = valorRm;
+    
+    if(valorFinal > 0xFFFF)  {
+        flags->C = 1;
+    }
+
+    if (valorFinal > 0x7FFF || 
+        (valorRdSinalizado > 0 && valorRmSinalizado > 0 && valorFinalSinalizado < 0) || 
+        (valorRdSinalizado < 0 && valorRmSinalizado < 0 && valorFinalSinalizado > 0)) {
+        flags->Ov = 1; 
+    }
+
+    if(valorFinal == 0) {
+        flags->Z = 1;
+    }
+
+    if(valorFinalSinalizado < 0) {
+        flags->S = 1;
+    }
+
+    
+    registradores[bitsEntre10e8(num)] = valorFinal;
 }
 
-void orr(int num, uint16_t registradores[]) {
+void orr(int num, uint16_t registradores[], Flags *flags) {
     printf("ORR R%d, R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e2(num));
-    registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] | registradores[bitsEntre4e2(num)];
+
+    zerarFlags(flags);
+
+    uint16_t valorFinal = registradores[bitsEntre7e5(num)] | registradores[bitsEntre4e2(num)];
+    int16_t valorFinalSinalizado = valorFinal;
+
+    uint16_t valorRd = registradores[bitsEntre7e5(num)];
+    int16_t valorRdSinalizado = valorRd;
+    
+    uint16_t valorRm = registradores[bitsEntre4e2(num)];
+    int16_t valorRmSinalizado = valorRm;
+    
+    if(valorFinal > 0xFFFF)  {
+        flags->C = 1;
+    }
+
+    if (valorFinal > 0x7FFF || 
+        (valorRdSinalizado > 0 && valorRmSinalizado > 0 && valorFinalSinalizado < 0) || 
+        (valorRdSinalizado < 0 && valorRmSinalizado < 0 && valorFinalSinalizado > 0)) {
+        flags->Ov = 1; 
+    }
+
+    if(valorFinal == 0) {
+        flags->Z = 1;
+    }
+
+    if(valorFinalSinalizado < 0) {
+        flags->S = 1;
+    }
+
+    
+    registradores[bitsEntre10e8(num)] = valorFinal;
 }
 
-void shr(int num, uint16_t registradores[]) {
+void shr(int num, uint16_t registradores[], Flags *flags) {
     printf("SHR R%d, R%d, #%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e0(num));
-    registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] >> bitsEntre4e0(num);
+
+    zerarFlags(flags);
+
+    uint16_t valorFinal = registradores[bitsEntre7e5(num)] >> bitsEntre4e0(num);
+    int16_t valorFinalSinalizado = valorFinal;
+    int16_t valorRdSinalizado = registradores[bitsEntre7e5(num)];
+
+    if(registradores[bitsEntre7e5(num)] >> bitsEntre4e0(num) > 0xFFFF)  {
+        flags->C = 1;
+    }
+
+    if (valorFinal > 0x7FFF ||
+        ((valorRdSinalizado < 0) && valorFinalSinalizado > 0 ) ||
+        ((valorRdSinalizado > 0) && valorFinalSinalizado < 0 )) {
+        flags->Ov = 1; 
+    }
+
+    if(valorFinal == 0) {
+        flags->Z = 1;
+    }
+
+    if(valorFinalSinalizado < 0) {
+        flags->S = 1;
+    }
+
+    
+    registradores[bitsEntre10e8(num)] = valorFinal;
 }
 
-void shl(int num, uint16_t registradores[]) {
+void shl(int num, uint16_t registradores[], Flags *flags) {
     printf("SHL R%d, R%d, #%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e0(num));
-    registradores[bitsEntre10e8(num)] = registradores[bitsEntre7e5(num)] << bitsEntre4e0(num);
+
+    zerarFlags(flags);
+
+    uint16_t valorFinal = registradores[bitsEntre7e5(num)] << bitsEntre4e0(num);
+    int16_t valorFinalSinalizado = valorFinal;
+    int16_t valorRdSinalizado = registradores[bitsEntre7e5(num)];
+
+    if(registradores[bitsEntre7e5(num)] << bitsEntre4e0(num) > 0xFFFF)  {
+        flags->C = 1;
+    }
+
+    if (valorFinal > 0x7FFF ||
+        ((valorRdSinalizado < 0) && valorFinalSinalizado > 0 ) ||
+        ((valorRdSinalizado > 0) && valorFinalSinalizado < 0 )) {
+        flags->Ov = 1; 
+    }
+
+    if(valorFinal == 0) {
+        flags->Z = 1;
+    }
+
+    if(valorFinalSinalizado < 0) {
+        flags->S = 1;
+    }
+
+    
+    registradores[bitsEntre10e8(num)] = valorFinal;
 }
 
-void ror(int num, uint16_t registradores[]) {
+void ror(int num, uint16_t registradores[], Flags *flags) {
     printf("ROR R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
-    registradores[bitsEntre10e8(num)] = (registradores[bitsEntre7e5(num)] >> 1) | (registradores[bitsEntre7e5(num)] << 15);
+
+    zerarFlags(flags);
+
+    uint16_t valorFinal = (registradores[bitsEntre7e5(num)] >> 1) | (registradores[bitsEntre7e5(num)] << 15);
+    int16_t valorFinalSinalizado = valorFinal;
+    int16_t valorRdSinalizado = registradores[bitsEntre7e5(num)];
+
+    if((registradores[bitsEntre7e5(num)] >> 1) | (registradores[bitsEntre7e5(num)] << 15) > 0xFFFF)  {
+        flags->C = 1;
+    }
+
+    if (valorFinal > 0x7FFF ||
+        ((valorRdSinalizado < 0) && valorFinalSinalizado > 0 ) ||
+        ((valorRdSinalizado > 0) && valorFinalSinalizado < 0 )) {
+        flags->Ov = 1; 
+    }
+
+    if(valorFinal == 0) {
+        flags->Z = 1;
+    }
+
+    if(valorFinalSinalizado < 0) {
+        flags->S = 1;
+    }
+
+    
+    registradores[bitsEntre10e8(num)] = valorFinal;
 }
 
-void rol(int num, uint16_t registradores[]) {
+void rol(int num, uint16_t registradores[], Flags *flags) {
     printf("ROL R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
-    registradores[bitsEntre10e8(num)] = (registradores[bitsEntre7e5(num)] << 1) | (registradores[bitsEntre7e5(num)] >> 15);
+
+    zerarFlags(flags);
+
+    uint16_t valorFinal = (registradores[bitsEntre7e5(num)] << 1) | (registradores[bitsEntre7e5(num)] >> 15);
+    int16_t valorFinalSinalizado = valorFinal;
+    int16_t valorRdSinalizado = registradores[bitsEntre7e5(num)];
+
+    if((registradores[bitsEntre7e5(num)] << 1) | (registradores[bitsEntre7e5(num)] >> 15) > 0xFFFF)  {
+        flags->C = 1;
+    }
+
+    if (valorFinal > 0x7FFF ||
+        ((valorRdSinalizado < 0) && valorFinalSinalizado > 0 ) ||
+        ((valorRdSinalizado > 0) && valorFinalSinalizado < 0 )) {
+        flags->Ov = 1; 
+    }
+
+    if(valorFinal == 0) {
+        flags->Z = 1;
+    }
+
+    if(valorFinalSinalizado < 0) {
+        flags->S = 1;
+    }
+
+    
+    registradores[bitsEntre10e8(num)] = valorFinal;
 }
 
 void cmp(int num, uint16_t registradores[], Flags *flags) {
@@ -521,25 +739,25 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
     
     //AND 
     if(bitsEntre15e12(numHexa) == 0b0111) {
-        and(numHexa, registradores);
+        and(numHexa, registradores, flagsPointer);
         return;
     }
     
     //ORR 
     if(bitsEntre15e12(numHexa) == 0b1000) {
-        orr(numHexa, registradores);
+        orr(numHexa, registradores, flagsPointer);
         return;
     }
     
     //NOT
     if(bitsEntre15e12(numHexa) == 0b1001) {
-        not(numHexa, registradores);
+        not(numHexa, registradores, flagsPointer);
         return;
     }
 
     //XOR
     if(bitsEntre15e12(numHexa) == 0b1010) {
-        xor(numHexa, registradores);
+        xor(numHexa, registradores, flagsPointer);
         return;
     }
 
@@ -587,25 +805,25 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
 
     //SHR
     if(bitsEntre15e12(numHexa) == 0b1011) {
-        shr(numHexa, registradores);
+        shr(numHexa, registradores, flagsPointer);
         return;
     }
 
     //SHL
     if(bitsEntre15e12(numHexa) == 0b1100) {
-        shl(numHexa, registradores);
+        shl(numHexa, registradores, flagsPointer);
         return;
     }
 
     //ROR
     if(bitsEntre15e12(numHexa) == 0b1101) {
-        ror(numHexa, registradores);
+        ror(numHexa, registradores, flagsPointer);
         return;
     }
 
     //ROL
     if(bitsEntre15e12(numHexa) == 0b1110) {
-        rol(numHexa, registradores);
+        rol(numHexa, registradores, flagsPointer);
         return;
     }
 

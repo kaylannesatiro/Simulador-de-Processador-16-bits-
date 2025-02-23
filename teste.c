@@ -641,18 +641,18 @@ uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[], unsigned *PC) 
         return 0;
     }
     int primeiraRodada = 1;
-    uint16_t j = 0;  // Agora `j` será inicializado com o valor da primeira parte da linha
+    uint16_t j = 0;
 
     while (fgets(linha, sizeof(linha), arquivo)) {
         
-        char *enderecoStr = strtok(linha, ": \n");  // Captura a parte antes do ":"
-        char *instrucaoStr = strtok(NULL, ": \n");  // Captura a parte depois do ":"
+        char *enderecoStr = strtok(linha, ": \n");
+        char *instrucaoStr = strtok(NULL, ": \n"); 
         if(primeiraRodada) {
             *PC = (uint16_t)strtol(enderecoStr, NULL, 16);
             primeiraRodada = 0;
         }
-        if (enderecoStr && instrucaoStr) {  // Verifica se ambos foram encontrados
-            j = (uint16_t)strtol(enderecoStr, NULL, 16);  // Converte o endereço para hexadecimal
+        if (enderecoStr && instrucaoStr) {
+            j = (uint16_t)strtol(enderecoStr, NULL, 16);
 
             unsigned int numeroHexa = strtol(instrucaoStr, NULL, 16);
             uint8_t primeiraParteInstrucao = numeroHexa;

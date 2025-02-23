@@ -363,12 +363,16 @@ void cmp(int num, uint16_t registradores[], Flags *flags) {
 void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
     printf("JEQ #%04X\n", bitsEntre10e2(num));
 
-    if(*PC == bitsEntre10e2(num) && flags->Z == 1 && flags->S == 0) {
+    uint16_t valorEndereco = bitsEntre10e2(num);
+    uint16_t valorPC16bits = *PC;
+    uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
+
+    if(valorParaPulo == *PC - 0x0002 && flags->Z == 1 && flags->S == 0) {
         *paradaPrograma = 1;
         return;
     }
     if(flags->Z == 1 && flags->S == 0) {
-        *PC = bitsEntre10e2(num);
+        *PC = valorParaPulo;
         return;
     }
 
@@ -377,12 +381,16 @@ void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
 void jlt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
     printf("JLT #%04X\n", bitsEntre10e2(num));
 
-    if(*PC == bitsEntre10e2(num) && flags->Z == 0 && flags->S == 1) {
+    uint16_t valorEndereco = bitsEntre10e2(num);
+    uint16_t valorPC16bits = *PC;
+    uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
+
+    if(valorParaPulo == *PC - 0x0002 && flags->Z == 0 && flags->S == 1) {
         *paradaPrograma = 1;
         return;
     }
     if(flags->Z == 0 && flags->S == 1) {
-        *PC = bitsEntre10e2(num);
+        *PC = valorParaPulo;
         return;
     }
 
@@ -391,13 +399,16 @@ void jlt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
 
 void jgt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
     printf("JGT #%04X\n", bitsEntre10e2(num));
+    uint16_t valorEndereco = bitsEntre10e2(num);
+    uint16_t valorPC16bits = *PC;
+    uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
 
-    if(*PC == bitsEntre10e2(num) && flags->Z == 0 && flags->S == 0) {
+    if(valorParaPulo == *PC - 0x0002 && flags->Z == 0 && flags->S == 0) {
         *paradaPrograma = 1;
         return;
     }
     if(flags->Z == 0 && flags->S == 0) {
-        *PC = bitsEntre10e2(num);
+        *PC = valorParaPulo;
         return;
     }
 
@@ -405,11 +416,17 @@ void jgt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
 
 void jump(int num, unsigned int *PC, uint16_t *paradaPrograma) {
     printf("JMP #%04X\n", bitsEntre10e2(num));
-    if(bitsEntre10e2(num) == *PC - 0x0002) {
+    uint16_t valorEndereco = bitsEntre10e2(num);
+    uint16_t valorPC16bits = *PC;
+
+    uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
+
+    if(valorParaPulo  == *PC - 0x0002) {
         *paradaPrograma = 1;
         return;
     }
-    *PC = bitsEntre10e2(num);
+    
+    *PC = valorParaPulo;
 }
 
 void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, uint16_t registradores[], 
@@ -611,35 +628,42 @@ void mostrarRegistradores(uint16_t registradores[]) {
     }
 }
 
-uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[]) {
+uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[], unsigned *PC) {
     FILE *arquivo;
     char linha[256];
     char *token;
     
     strcat(nomeArquivo, ".txt");
-    arquivo = fopen(nomeArquivo , "r");
-    uint16_t j = 0x0000;
-    while(!feof(arquivo)) {
-        fgets(linha, 256, arquivo);
-        token = strtok(linha, ": \n");
-        int i = 0;
-        while (token != NULL) {
+    arquivo = fopen(nomeArquivo, "r");
+    
+    if (!arquivo) {
+        perror("Erro ao abrir o arquivo");
+        return 0;
+    }
+    int primeiraRodada = 1;
+    uint16_t j = 0;  // Agora `j` será inicializado com o valor da primeira parte da linha
+
+    while (fgets(linha, sizeof(linha), arquivo)) {
         
-            unsigned int numeroHexa = strtol(token, NULL, 16);
+        char *enderecoStr = strtok(linha, ": \n");  // Captura a parte antes do ":"
+        char *instrucaoStr = strtok(NULL, ": \n");  // Captura a parte depois do ":"
+        if(primeiraRodada) {
+            *PC = (uint16_t)strtol(enderecoStr, NULL, 16);
+            primeiraRodada = 0;
+        }
+        if (enderecoStr && instrucaoStr) {  // Verifica se ambos foram encontrados
+            j = (uint16_t)strtol(enderecoStr, NULL, 16);  // Converte o endereço para hexadecimal
+
+            unsigned int numeroHexa = strtol(instrucaoStr, NULL, 16);
             uint8_t primeiraParteInstrucao = numeroHexa;
             uint8_t segundaParteInstrucao = numeroHexa >> 8;
 
-            if(i% 2 == 1) {
-                memoriaPrograma[j] = primeiraParteInstrucao;
-                memoriaPrograma[j+1] = segundaParteInstrucao;
-            }
-            i++;
-            token = strtok(NULL, ": \n"); 
+            memoriaPrograma[j] = primeiraParteInstrucao;
+            memoriaPrograma[j + 1] = segundaParteInstrucao;
         }
-        j += 0x0002;
     }
 
-    fclose(arquivo); 
+    fclose(arquivo);
     return j;
 }
 
@@ -668,15 +692,17 @@ int main() {
 
     printf("Digite o nome do arquivo: ");
     scanf("%s", nomeArquivo);
-    valorUltimaInstrucao = lerArquivo(nomeArquivo, memoriaPrograma);
+    
+    valorUltimaInstrucao = lerArquivo(nomeArquivo, memoriaPrograma, PCPointer);
+    int comecarMemPrograma = PC;
 
     printf("Valor da memoria do programa: ------------------------\n");
-    for (int i = 0; i < valorUltimaInstrucao; i+=2){
+    for (int i = comecarMemPrograma; i <= valorUltimaInstrucao; i+=2){
         printf("%04X:%02X%02X\n", i, memoriaPrograma[i+1], memoriaPrograma[i]);
     }
 
     printf("Intrucoes: ------------------------\n");
-    while(PC != valorUltimaInstrucao) {
+    while(PC != valorUltimaInstrucao + 0x0002) {
         unsigned int IR;
         IR = memoriaPrograma[PC] + (memoriaPrograma[PC + 1] << 8);
         PC += 0x0002;

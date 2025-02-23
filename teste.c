@@ -117,7 +117,6 @@ void movImmed(int numHexa, uint16_t registradores[]) {
 void add(int numHexa, uint16_t registradores[], Flags *flags) {
     printf("ADD R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
 
-
     uint16_t valorRd = registradores[bitsEntre7e5(numHexa)];
     int16_t valorRdSinalizado = valorRd;
     
@@ -152,15 +151,25 @@ void add(int numHexa, uint16_t registradores[], Flags *flags) {
 
 void sub(int numHexa, uint16_t registradores[], Flags *flags) {
     printf("SUB R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
-    uint16_t valorRd = registradores[bitsEntre7e5(numHexa)];;
-    uint16_t valorRm = registradores[bitsEntre4e2(numHexa)];
-    uint16_t resultado = valorRd - valorRm;
-    int16_t resultadoSinalisado = resultado;
-    if(resultado > 0xFFFF) {
+    
+    int16_t valorRd = registradores[bitsEntre7e5(numHexa)];
+    int16_t valorRdSinalizado = valorRd;
+    
+    uint16_t valorRm = complementoDois16bits(registradores[bitsEntre4e2(numHexa)]);
+    int16_t valorRmSinalizado = valorRm;
+
+    uint16_t resultado = valorRd + valorRm;
+    int16_t resultadoSinalizado = resultado;
+
+    zerarFlags(flags);
+
+    if(valorRd < valorRmSinalizado) {
         flags->C = 1;
     }
 
-    if(resultado > 0x7FFF || resultadoSinalisado < -0x8000) {
+    if(resultado > 0x7FFF || 
+        (valorRdSinalizado > 0 && valorRmSinalizado > 0 && resultadoSinalizado < 0) || 
+        (valorRdSinalizado < 0 && valorRmSinalizado < 0 && resultadoSinalizado > 0)) {
         flags->Ov = 1;
     }
 
@@ -168,7 +177,44 @@ void sub(int numHexa, uint16_t registradores[], Flags *flags) {
         flags->Z = 1;
     }
 
-    if(resultadoSinalisado < 0) {
+    if(resultadoSinalizado < 0) {
+        flags->S = 1;
+    }
+
+    registradores[bitsEntre10e8(numHexa)] = resultado;
+
+}
+
+
+void mul(int numHexa, uint16_t registradores[], Flags *flags) {
+    printf("MUL R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+
+    uint16_t valorRd = registradores[bitsEntre7e5(numHexa)];
+    int16_t valorRdSinalizado = valorRd;
+    
+    uint16_t valorRm = registradores[bitsEntre4e2(numHexa)];
+    int16_t valorRmSinalizado = valorRm;
+
+    uint16_t resultado = valorRd * valorRm;
+    int16_t resultadoSinalizado = resultado;
+
+    zerarFlags(flags);
+
+    if(valorRd + valorRm > 0xFFFF) {
+        flags->C = 1;
+    }
+
+    if(resultado > 0x7FFF || 
+        (valorRdSinalizado > 0 && valorRmSinalizado > 0 && resultadoSinalizado < 0) || 
+        (valorRdSinalizado < 0 && valorRmSinalizado < 0 && resultadoSinalizado > 0)) {
+        flags->Ov = 1;
+    }
+
+    if(resultado == 0) {
+        flags->Z = 1;
+    }
+
+    if(resultadoSinalizado < 0) {
         flags->S = 1;
     }
 
@@ -283,18 +329,25 @@ void rol(int num, uint16_t registradores[]) {
 
 void cmp(int num, uint16_t registradores[], Flags *flags) {
     printf("CMP R%d, R%d\n", bitsEntre7e5(num), bitsEntre4e2(num));
-    uint16_t valorRd = registradores[bitsEntre7e5(num)];
-    uint16_t valorRm = registradores[bitsEntre4e2(num)];
-    uint16_t resultado = valorRd - valorRm;
-    int16_t resultadoSinalisado = resultado;
+
+    int16_t valorRd = registradores[bitsEntre7e5(num)];
+    int16_t valorRdSinalizado = valorRd;
+    
+    uint16_t valorRm = complementoDois16bits(registradores[bitsEntre4e2(num)]);
+    int16_t valorRmSinalizado = valorRm;
+
+    uint16_t resultado = valorRd + valorRm;
+    int16_t resultadoSinalizado = resultado;
 
     zerarFlags(flags);
 
-    if(resultado > 0xFFFF) {
+    if(valorRd + valorRm > 0xFFFF) {
         flags->C = 1;
     }
 
-    if(resultado > 0x7FFF || resultadoSinalisado < -0x8000) {
+    if(resultado > 0x7FFF || 
+        (valorRdSinalizado > 0 && valorRmSinalizado > 0 && resultadoSinalizado < 0) || 
+        (valorRdSinalizado < 0 && valorRmSinalizado < 0 && resultadoSinalizado > 0)) {
         flags->Ov = 1;
     }
 
@@ -302,7 +355,7 @@ void cmp(int num, uint16_t registradores[], Flags *flags) {
         flags->Z = 1;
     }
 
-    if(resultadoSinalisado < 0) {
+    if(resultadoSinalizado < 0) {
         flags->S = 1;
     }
 }
@@ -399,7 +452,9 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
             *paradaPrograma = 1;
             return;
         }
+        printf("NOP ---------------------------------------\n");
         printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, stack, memoriaDeDados, flags, paradaPrograma, PC, flagsPointer);
+        printf("FIM NOP -----------------------------------\n");
         return;
     }
 
@@ -441,8 +496,11 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
     }
 
     //MUL
+    if(bitsEntre15e12(numHexa) == 0b0110) {
+        mul(numHexa, registradores, flagsPointer);
+        return;
+    }
     
-
     
     //AND 
     if(bitsEntre15e12(numHexa) == 0b0111) {
@@ -574,7 +632,7 @@ uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[]) {
             if(i% 2 == 1) {
                 memoriaPrograma[j] = primeiraParteInstrucao;
                 memoriaPrograma[j+1] = segundaParteInstrucao;
-            } 
+            }
             i++;
             token = strtok(NULL, ": \n"); 
         }

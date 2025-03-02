@@ -660,17 +660,27 @@ void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, u
     }
 
     printf("\nStack: ------------------------\n\n");
+    int possuiAlgoPilha = 0;
     for(int i = 0; i < 65536; i+=0x0002) {
         if(stack[i].possuiDado) {
             printf("%04X: %02X%02X\n", i, stack[i+1].dado, stack[i].dado);
+            possuiAlgoPilha = 1;
         }
+    }
+    if(!possuiAlgoPilha) {
+        printf("Stack não foi alterada\n");
     }
     
     printf("\nMemoria de dados: ------------------------\n\n");
+    int possuiDado = 0;
     for(int i = 0; i < 65536; i+=0x0002) {
         if(memoriaDeDados[i].possuiDado) {
             printf("%04X: %02X%02x\n", i, memoriaDeDados[i+1].dado, memoriaDeDados[i].dado);
+            possuiDado = 1;
         }
+    }
+    if(!possuiDado) {
+        printf("Memoria de dados não foi alterada\n");
     }
 
     imprimirFlags(flags);

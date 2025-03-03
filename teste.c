@@ -540,7 +540,6 @@ void rol(int num, uint16_t registradores[], Flags *flags) {
     if(valorFinalSinalizado < 0) {
         flags->S = 1;
     }
-
     
     registradores[bitsEntre10e8(num)] = valorFinal;
 }

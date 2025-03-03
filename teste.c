@@ -551,7 +551,7 @@ void cmp(int num, uint16_t registradores[], Flags *flags) {
     int16_t valorRd = registradores[bitsEntre7e5(num)];
     int16_t valorRdSinalizado = valorRd;
     
-    uint16_t valorRm = complementoDois16bits(registradores[bitsEntre4e2(num)]);
+    uint16_t valorRm = registradores[bitsEntre4e2(num)];
     int16_t valorRmSinalizado = valorRm;
 
     uint16_t resultado = valorRd + valorRm;
@@ -569,7 +569,7 @@ void cmp(int num, uint16_t registradores[], Flags *flags) {
         flags->Ov = 1;
     }
 
-    if(resultado == 0) {
+    if(valorRd - valorRm == 0) {
         flags->Z = 1;
     }
 
@@ -578,73 +578,95 @@ void cmp(int num, uint16_t registradores[], Flags *flags) {
     }
 }
 
-void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
+void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint16_t valorUltimaInstrucao) {
     printf("JEQ #%04X\n", bitsEntre10e2(num));
 
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
-    uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
 
-    if(valorParaPulo == *PC - 0x0002 && flags->Z == 1 && flags->S == 0) {
-        *paradaPrograma = 1;
+    if(valorPC16bits + valorEndereco > valorUltimaInstrucao) {
+        uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
+    
+        if(valorParaPulo == *PC - 0x0002 && flags->Z == 1 && flags->S == 0) {
+            *paradaPrograma = 1;
+            return;
+        }
+        
+        if(flags->Z == 1 && flags->S == 0) {
+            *PC = valorParaPulo;
+            return;
+        }
         return;
     }
-    if(flags->Z == 1 && flags->S == 0) {
-        *PC = valorParaPulo;
-        return;
-    }
-
+    *PC += valorEndereco;
 }
 
-void jlt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
+void jlt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint16_t valorUltimaInstrucao) {
     printf("JLT #%04X\n", bitsEntre10e2(num));
 
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
-    uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
 
-    if(valorParaPulo == *PC - 0x0002 && flags->Z == 0 && flags->S == 1) {
-        *paradaPrograma = 1;
+    if(valorPC16bits + valorEndereco > valorUltimaInstrucao) {
+        uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
+    
+        if(valorParaPulo == *PC - 0x0002 && flags->Z == 0 && flags->S == 1) {
+            *paradaPrograma = 1;
+            return;
+        }
+        if(flags->Z == 0 && flags->S == 1) {
+            *PC = valorParaPulo;
+            return;
+        }
         return;
     }
-    if(flags->Z == 0 && flags->S == 1) {
-        *PC = valorParaPulo;
-        return;
-    }
 
+    *PC += valorEndereco;
 }
 
 
-void jgt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags) {
+void jgt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint16_t valorUltimaInstrucao) {
     printf("JGT #%04X\n", bitsEntre10e2(num));
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
-    uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
-
-    if(valorParaPulo == *PC - 0x0002 && flags->Z == 0 && flags->S == 0) {
-        *paradaPrograma = 1;
+ 
+    if(valorPC16bits + valorEndereco > valorUltimaInstrucao) {
+        uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
+    
+        if(valorParaPulo == *PC - 0x0002 && flags->Z == 0 && flags->S == 0) {
+            *paradaPrograma = 1;
+            return;
+        }
+        if(flags->Z == 0 && flags->S == 0) {
+            *PC = valorParaPulo;
+            return;
+        }
         return;
     }
-    if(flags->Z == 0 && flags->S == 0) {
-        *PC = valorParaPulo;
-        return;
-    }
+    
+    *PC += valorEndereco;
 
 }
 
-void jump(int num, unsigned int *PC, uint16_t *paradaPrograma) {
+void jump(int num, unsigned int *PC, uint16_t *paradaPrograma, uint16_t valorUltimaInstrucao) {
     printf("JMP #%04X\n", bitsEntre10e2(num));
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
 
-    uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
-
-    if(valorParaPulo  == *PC - 0x0002) {
-        *paradaPrograma = 1;
+    if(*PC + valorEndereco > valorUltimaInstrucao) {
+        uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
+    
+        if(valorParaPulo  == *PC - 0x0002) {
+            *paradaPrograma = 1;
+            return;
+        }
+        
+        *PC = valorParaPulo;
         return;
     }
-    
-    *PC = valorParaPulo;
+
+    *PC += valorEndereco;
+
 }
 
 void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, uint16_t registradores[], 
@@ -682,14 +704,30 @@ void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, u
     if(!possuiDado) {
         printf("Memoria de dados não foi alterada\n");
     }
-
+    
     imprimirFlags(flags);
+    
+}
 
+void mostrarStack(Stack stack[]) {
+    printf("Stack: ------------------------\n");
+    for(int i = 0; i < 65536; i+=0x0002) {
+        if(stack[i].possuiDado) {
+            printf("%04X: %02X%02X\n", i, stack[i+1].dado, stack[i].dado);
+        }
+    }
+}
+
+void mostrarRegistradores(uint16_t registradores[]) {
+    printf("Registradores: ------------------------\n");
+    for(int i = 0; i < 8; i++) {
+        printf("R%d: %04X\n", i, registradores[i]);
+    }
 }
 
 void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stack stack[], 
-                    MemoriaDados memoriaDeDados[], Flags flags, uint16_t *paradaPrograma,
-                    unsigned *PC, Flags *flagsPointer, uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao) {
+    MemoriaDados memoriaDeDados[], Flags flags, uint16_t *paradaPrograma,
+    unsigned *PC, Flags *flagsPointer, uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao) {
 
     //NOP and HALT
     if(numHexa == 0xFFFF || numHexa == 0x0000) {
@@ -785,31 +823,31 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
 
     //CMP 
     if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 0 && (bits1e0(numHexa) == 0b11)) {
-        printf("CMP R%d, R%d\n", bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        cmp(numHexa, registradores, flagsPointer);
         return;
     }
 
     //JMP
     if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b00)) {
-        jump(numHexa, PC, paradaPrograma);
+        jump(numHexa, PC, paradaPrograma,valorUltimaInstrucao);
         return;
     }
 
     //JEQ
     if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b01)) {
-        jeq(numHexa, PC, paradaPrograma, flagsPointer);
+        jeq(numHexa, PC, paradaPrograma, flagsPointer, valorUltimaInstrucao);
         return;
     }
 
     //JLT
     if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b10)) {
-        jlt(numHexa, PC, paradaPrograma, flagsPointer);
+        jlt(numHexa, PC, paradaPrograma, flagsPointer, valorUltimaInstrucao);
         return;
     }
 
     //JGT
     if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b11)) {
-        jgt(numHexa, PC, paradaPrograma, flagsPointer);
+        jgt(numHexa, PC, paradaPrograma, flagsPointer, valorUltimaInstrucao);
         return;
     }
 
@@ -838,22 +876,6 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
     }
 
     printf("Instrução não reconhecida\n");
-}
-
-void mostrarStack(Stack stack[]) {
-    printf("Stack: ------------------------\n");
-    for(int i = 0; i < 65536; i+=0x0002) {
-        if(stack[i].possuiDado) {
-            printf("%04X: %02X%02X\n", i, stack[i+1].dado, stack[i].dado);
-        }
-    }
-}
-
-void mostrarRegistradores(uint16_t registradores[]) {
-    printf("Registradores: ------------------------\n");
-    for(int i = 0; i < 8; i++) {
-        printf("R%d: %04X\n", i, registradores[i]);
-    }
 }
 
 uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[], unsigned *PC) {

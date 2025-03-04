@@ -575,6 +575,7 @@ void cmp(int num, uint16_t registradores[], Flags *flags) {
     if(resultadoSinalizado < 0) {
         flags->S = 1;
     }
+
 }
 
 void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint16_t valorUltimaInstrucao) {
@@ -583,7 +584,7 @@ void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
 
-    if(valorPC16bits + valorEndereco > valorUltimaInstrucao) {
+    if(valorPC16bits + valorEndereco > valorUltimaInstrucao + 0x0002) {
         uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
     
         if(valorParaPulo == *PC - 0x0002 && flags->Z == 1 && flags->S == 0) {
@@ -597,7 +598,10 @@ void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint
         }
         return;
     }
-    *PC += valorEndereco;
+    
+    if(flags->Z == 1 && flags->S == 0) {
+        *PC += valorEndereco;
+    }
 }
 
 void jlt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint16_t valorUltimaInstrucao) {
@@ -606,7 +610,7 @@ void jlt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
 
-    if(valorPC16bits + valorEndereco > valorUltimaInstrucao) {
+    if(valorPC16bits + valorEndereco > valorUltimaInstrucao + 0x0002) {
         uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
     
         if(valorParaPulo == *PC - 0x0002 && flags->Z == 0 && flags->S == 1) {
@@ -618,9 +622,11 @@ void jlt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint
             return;
         }
         return;
+    } 
+    
+    if(flags->Z == 0 && flags->S == 1) {
+        *PC += valorEndereco;
     }
-
-    *PC += valorEndereco;
 }
 
 
@@ -629,7 +635,7 @@ void jgt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
  
-    if(valorPC16bits + valorEndereco > valorUltimaInstrucao) {
+    if(valorPC16bits + valorEndereco > valorUltimaInstrucao + 0x0002) {
         uint16_t valorParaPulo = 0b1111111000000000 + valorEndereco + valorPC16bits;
     
         if(valorParaPulo == *PC - 0x0002 && flags->Z == 0 && flags->S == 0) {
@@ -643,7 +649,9 @@ void jgt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint
         return;
     }
     
-    *PC += valorEndereco;
+    if(flags->Z == 0 && flags->S == 0) {
+        *PC += valorEndereco;
+    }
 
 }
 
@@ -673,30 +681,18 @@ void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, u
                     unsigned *PC, Flags *flagsPointer) {
 
 
-    printf("\nValor do SP e PC ----------------------\n\n");
-    printf("SP: %04X\nPC: %04X\n", *SP, *PC);
-    printf("\nRegistradores: ------------------------\n\n");
+    printf("\nRegistradores, PC e SP: ------------------------\n\n");
     for(int i = 0; i < 8; i++) {
-        printf("R%d: %04X\n", i, registradores[i]);
+        printf("R%d: 0x%04X\n", i, registradores[i]);
     }
+    printf("\nPC: 0x%04X\nSP: 0x%04X\n", *PC, *SP);
 
-    printf("\nStack: ------------------------\n\n");
-    int possuiAlgoPilha = 0;
-    for(int i = 0; i < 65536; i+=0x0002) {
-        if(stack[i].possuiDado) {
-            printf("%04X: %02X%02X\n", i, stack[i+1].dado, stack[i].dado);
-            possuiAlgoPilha = 1;
-        }
-    }
-    if(!possuiAlgoPilha) {
-        printf("Stack não foi alterada\n");
-    }
     
     printf("\nMemoria de dados: ------------------------\n\n");
     int possuiDado = 0;
     for(int i = 0; i < 65536; i+=0x0002) {
         if(memoriaDeDados[i].possuiDado) {
-            printf("%04X: %02X%02x\n", i, memoriaDeDados[i+1].dado, memoriaDeDados[i].dado);
+            printf("%04X: 0x%02X%02x\n", i, memoriaDeDados[i+1].dado, memoriaDeDados[i].dado);
             possuiDado = 1;
         }
     }
@@ -704,6 +700,18 @@ void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, u
         printf("Memoria de dados não foi alterada\n");
     }
     
+    printf("\nStack: ------------------------\n\n");
+    int possuiAlgoPilha = 0;
+    for(int i = 0; i < 65536; i+=0x0002) {
+        if(stack[i].possuiDado) {
+            printf("%04X: 0x%02X%02X\n", i, stack[i+1].dado, stack[i].dado);
+            possuiAlgoPilha = 1;
+        }
+    }
+    if(!possuiAlgoPilha) {
+        printf("Stack não foi alterada\n");
+    }
+
     imprimirFlags(flags);
     
 }
@@ -712,7 +720,7 @@ void mostrarStack(Stack stack[]) {
     printf("Stack: ------------------------\n");
     for(int i = 0; i < 65536; i+=0x0002) {
         if(stack[i].possuiDado) {
-            printf("%04X: %02X%02X\n", i, stack[i+1].dado, stack[i].dado);
+            printf("%04X: 0x%02X%02X\n", i, stack[i+1].dado, stack[i].dado);
         }
     }
 }
@@ -720,7 +728,7 @@ void mostrarStack(Stack stack[]) {
 void mostrarRegistradores(uint16_t registradores[]) {
     printf("Registradores: ------------------------\n");
     for(int i = 0; i < 8; i++) {
-        printf("R%d: %04X\n", i, registradores[i]);
+        printf("R%d: 0x%04X\n", i, registradores[i]);
     }
 }
 

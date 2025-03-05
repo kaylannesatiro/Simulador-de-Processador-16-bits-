@@ -110,7 +110,7 @@ void movRmParaRd(int numHexa, uint16_t registradores[]) {
 }
 
 void movImmed(int numHexa, uint16_t registradores[]) {
-    printf("MOV R%d, #%04X\n", bitsEntre10e8(numHexa), bitsEntre7e0(numHexa));
+    printf("MOV R%d, #%d\n", bitsEntre10e8(numHexa), bitsEntre7e0(numHexa));
     registradores[bitsEntre10e8(numHexa)] = bitsEntre7e0(numHexa);
 }
 
@@ -553,7 +553,7 @@ void cmp(int num, uint16_t registradores[], Flags *flags) {
     uint16_t valorRm = registradores[bitsEntre4e2(num)];
     int16_t valorRmSinalizado = valorRm;
 
-    uint16_t resultado = valorRd + valorRm;
+    uint16_t resultado = valorRd + complementoDois16bits(valorRm);
     int16_t resultadoSinalizado = resultado;
 
     zerarFlags(flags);
@@ -692,7 +692,7 @@ void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, u
     int possuiDado = 0;
     for(int i = 0; i < 65536; i+=0x0002) {
         if(memoriaDeDados[i].possuiDado) {
-            printf("%04X: 0x%02X%02x\n", i, memoriaDeDados[i+1].dado, memoriaDeDados[i].dado);
+            printf("%04X: 0x%02X%02X\n", i, memoriaDeDados[i+1].dado, memoriaDeDados[i].dado);
             possuiDado = 1;
         }
     }
@@ -702,14 +702,16 @@ void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, u
     
     printf("\nStack: ------------------------\n\n");
     int possuiAlgoPilha = 0;
-    for(int i = 0; i < 65536; i+=0x0002) {
+    for(int i = 65536; i >= 0 ; i-=0x0002) {
         if(stack[i].possuiDado) {
             printf("%04X: 0x%02X%02X\n", i, stack[i+1].dado, stack[i].dado);
             possuiAlgoPilha = 1;
+        } else if(i >= 0x81FA && i <= 0x8200) {
+            printf("%04X: 0x%02X%02X\n", i, stack[i+1].dado, stack[i].dado);
         }
     }
     if(!possuiAlgoPilha) {
-        printf("Stack não foi alterada\n");
+        printf("\nStack não foi alterada\n");
     }
 
     imprimirFlags(flags);
@@ -718,7 +720,7 @@ void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, u
 
 void mostrarStack(Stack stack[]) {
     printf("Stack: ------------------------\n");
-    for(int i = 0; i < 65536; i+=0x0002) {
+    for(int i = 0; i <= 65536 ; i+=0x0002) {
         if(stack[i].possuiDado) {
             printf("%04X: 0x%02X%02X\n", i, stack[i+1].dado, stack[i].dado);
         }
@@ -883,6 +885,7 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
     }
 
     printf("Instrução não reconhecida\n");
+    *paradaPrograma = 1;
 }
 
 uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[], unsigned *PC) {
@@ -926,7 +929,7 @@ uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[], unsigned *PC) 
 
 int main() {
 
-    char nomeArquivo[300];
+    char nomeArquivo[500];
     unsigned int PC = 0x0000;
     unsigned int *PCPointer = &PC;
     unsigned valorSP = 0x8200;
@@ -947,7 +950,7 @@ int main() {
         stack[i].possuiDado = 0;
     }
 
-    printf("Digite o nome do arquivo: ");
+    printf("Digite o caminho e o nome do arquivo(não é necessario incluir .txt no final do nome do arquivo): ");
     scanf("%s", nomeArquivo);
     
     valorUltimaInstrucao = lerArquivo(nomeArquivo, memoriaPrograma, PCPointer);
@@ -958,7 +961,7 @@ int main() {
         printf("%04X:%02X%02X\n", i, memoriaPrograma[i+1], memoriaPrograma[i]);
     }
 
-    printf("Intrucoes: ------------------------\n");
+    printf("\nIntrucoes: ------------------------\n");
     while(PC != valorUltimaInstrucao + 0x0002) {
         unsigned int IR;
         IR = memoriaPrograma[PC] + (memoriaPrograma[PC + 1] << 8);

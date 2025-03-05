@@ -1,0 +1,22 @@
+Equipe: João Vitor Rodrigues Santos - 567428
+	Kaylanne de Jesus Sousa Sátiro - 567741
+	Carla Cristina - 571600
+
+O programa foi feito usando c, e utilizando as seguintes bibliotecas:
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+O programa foi desenvolvido e testado no sistema operacional Windows 11.
+
+Não é necessário incluir .txt no nome final do arquivo, dentro da aplicação ela é colocada automaticamente,
+um exemplo do caminho do arquivo:
+
+C:\\Users\\joao\\OneDrive\\Documentos\\ArquivoDoTestePush
+
+Caso o arquivo estiver dentro da própria pasta do programa, é necessário apenas o nome do arquivo,
+Exemplo:
+
+ArquivoDoTestePush

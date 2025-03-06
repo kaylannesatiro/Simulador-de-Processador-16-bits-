@@ -64,10 +64,8 @@ int bits1e0(int num) {
 
 int haltOuNop(int num){
     if(num == 0xFFFF){
-        printf("HALT\n");
         return 1;
     } else if(num == 0x0000){
-        printf("NOP\n");
         return 0;
     }
 }
@@ -109,18 +107,14 @@ void zerarFlags(Flags *flags) {
 }
 
 void movRmParaRd(int numHexa, uint16_t registradores[]) {
-    printf("MOV R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
     registradores[bitsEntre10e8(numHexa)] = registradores[bitsEntre7e5(numHexa)];
 }
 
 void movImmed(int numHexa, uint16_t registradores[]) {
-    printf("MOV R%d, #%d\n", bitsEntre10e8(numHexa), bitsEntre7e0(numHexa));
     registradores[bitsEntre10e8(numHexa)] = bitsEntre7e0(numHexa);
 }
 
 void add(int numHexa, uint16_t registradores[], Flags *flags) {
-    printf("ADD R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
-
     uint16_t valorRd = registradores[bitsEntre7e5(numHexa)];
     int16_t valorRdSinalizado = valorRd;
     
@@ -153,9 +147,7 @@ void add(int numHexa, uint16_t registradores[], Flags *flags) {
     registradores[bitsEntre10e8(numHexa)] = resultado;
 }
 
-void sub(int numHexa, uint16_t registradores[], Flags *flags) {
-    printf("SUB R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
-    
+void sub(int numHexa, uint16_t registradores[], Flags *flags) { 
     int16_t valorRd = registradores[bitsEntre7e5(numHexa)];
     int16_t valorRdSinalizado = valorRd;
     
@@ -191,8 +183,6 @@ void sub(int numHexa, uint16_t registradores[], Flags *flags) {
 
 
 void mul(int numHexa, uint16_t registradores[], Flags *flags) {
-    printf("MUL R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
-
     uint16_t valorRd = registradores[bitsEntre7e5(numHexa)];
     int16_t valorRdSinalizado = valorRd;
     
@@ -226,7 +216,6 @@ void mul(int numHexa, uint16_t registradores[], Flags *flags) {
 }
 
 void push(int numHexa, uint16_t registradores[], unsigned int *SP, Stack stack[]) {
-    printf("PUSH R%d\n", bitsEntre4e2(numHexa));
     uint8_t dadoParaStack1 = registradores[bitsEntre4e2(numHexa)];
     uint8_t dadoParaStack2 = registradores[bitsEntre4e2(numHexa)] >> 8;
     stack[*SP].dado = dadoParaStack1;
@@ -237,7 +226,6 @@ void push(int numHexa, uint16_t registradores[], unsigned int *SP, Stack stack[]
 }
 
 void pop(int numHexa, uint16_t registradores[], unsigned int *SP, Stack stack[]) {
-    printf("POP R%d\n", bitsEntre10e8(numHexa));
     *SP += 0x0002;
     uint16_t valorParaRegistrador = stack[*SP].dado + (stack[*SP + 1].dado << 8);
     registradores[bitsEntre10e8(numHexa)] = valorParaRegistrador;
@@ -254,8 +242,6 @@ void storeImmed(int numHexa, uint16_t registradores[], MemoriaDados memomoriaDeD
     
     uint16_t endereco = registradores[bitsEntre7e5(numHexa)];
 
-    printf("STR R%d, #%d\n", endereco, immed);
-
     memomoriaDeDados[endereco].dado = valorParaMEM1;
     memomoriaDeDados[endereco + 1].dado = valorParaMEM2;
     memomoriaDeDados[endereco].possuiDado = 1;
@@ -269,7 +255,6 @@ void storeImmed(int numHexa, uint16_t registradores[], MemoriaDados memomoriaDeD
 }
 
 void storeRd(int num, uint16_t registradores[], MemoriaDados memoriaDeDados[]) {
-    printf("STR [R%d], R%d\n", bitsEntre7e5(num), bitsEntre4e2(num));
     int endereco = registradores[bitsEntre7e5(num)];
     int16_t valor = registradores[bitsEntre4e2(num)];
     uint8_t valorParaMEM1 = valor;
@@ -284,16 +269,13 @@ void storeRd(int num, uint16_t registradores[], MemoriaDados memoriaDeDados[]) {
     memoriaDeDados[endereco + 1].possuiDado = 1;
 }
 
-void load(int num, uint16_t registradores[], MemoriaDados memoriaDeDados[]) {
-    printf("LDR R%d, [R%d]\n", bitsEntre10e8(num), bitsEntre7e5(num));
+void load(int num, uint16_t registradores[], MemoriaDados memoriaDeDados[]) {;
     int endereco = registradores[bitsEntre7e5(num)];
     int16_t valor = memoriaDeDados[endereco].dado + (memoriaDeDados[endereco + 1].dado << 8);
     registradores[bitsEntre10e8(num)] = valor;
 }
 
 void not(int num, uint16_t registradores[], Flags *flags) {
-    printf("NOT R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
-
     zerarFlags(flags);
 
     uint16_t valorFinal =  ~registradores[bitsEntre7e5(num)];
@@ -320,7 +302,6 @@ void not(int num, uint16_t registradores[], Flags *flags) {
 }
 
 void and(int num, uint16_t registradores[], Flags *flags) {
-    printf("AND R%d, R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e2(num));
     zerarFlags(flags);
 
     uint16_t valorFinal = registradores[bitsEntre7e5(num)] & registradores[bitsEntre4e2(num)];
@@ -355,7 +336,6 @@ void and(int num, uint16_t registradores[], Flags *flags) {
 }
 
 void xor(int num, uint16_t registradores[], Flags *flags) {
-    printf("XOR R%d, R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e2(num));
     zerarFlags(flags);
 
     uint16_t valorFinal = registradores[bitsEntre7e5(num)] ^ registradores[bitsEntre4e2(num)];
@@ -390,8 +370,6 @@ void xor(int num, uint16_t registradores[], Flags *flags) {
 }
 
 void orr(int num, uint16_t registradores[], Flags *flags) {
-    printf("ORR R%d, R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e2(num));
-
     zerarFlags(flags);
 
     uint16_t valorFinal = registradores[bitsEntre7e5(num)] | registradores[bitsEntre4e2(num)];
@@ -426,8 +404,6 @@ void orr(int num, uint16_t registradores[], Flags *flags) {
 }
 
 void shr(int num, uint16_t registradores[], Flags *flags) {
-    printf("SHR R%d, R%d, #%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e0(num));
-
     zerarFlags(flags);
 
     uint16_t valorFinal = registradores[bitsEntre7e5(num)] >> bitsEntre4e0(num);
@@ -457,8 +433,6 @@ void shr(int num, uint16_t registradores[], Flags *flags) {
 }
 
 void shl(int num, uint16_t registradores[], Flags *flags) {
-    printf("SHL R%d, R%d, #%d\n", bitsEntre10e8(num), bitsEntre7e5(num), bitsEntre4e0(num));
-
     zerarFlags(flags);
 
     uint16_t valorFinal = registradores[bitsEntre7e5(num)] << bitsEntre4e0(num);
@@ -488,8 +462,6 @@ void shl(int num, uint16_t registradores[], Flags *flags) {
 }
 
 void ror(int num, uint16_t registradores[], Flags *flags) {
-    printf("ROR R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
-
     zerarFlags(flags);
 
     uint16_t valorFinal = (registradores[bitsEntre7e5(num)] >> 1) | (registradores[bitsEntre7e5(num)] << 15);
@@ -519,8 +491,6 @@ void ror(int num, uint16_t registradores[], Flags *flags) {
 }
 
 void rol(int num, uint16_t registradores[], Flags *flags) {
-    printf("ROL R%d, R%d\n", bitsEntre10e8(num), bitsEntre7e5(num));
-
     zerarFlags(flags);
 
     uint16_t valorFinal = (registradores[bitsEntre7e5(num)] << 1) | (registradores[bitsEntre7e5(num)] >> 15);
@@ -549,8 +519,6 @@ void rol(int num, uint16_t registradores[], Flags *flags) {
 }
 
 void cmp(int num, uint16_t registradores[], Flags *flags) {
-    printf("CMP R%d, R%d\n", bitsEntre7e5(num), bitsEntre4e2(num));
-
     int16_t valorRd = registradores[bitsEntre7e5(num)];
     int16_t valorRdSinalizado = valorRd;
     
@@ -583,8 +551,6 @@ void cmp(int num, uint16_t registradores[], Flags *flags) {
 }
 
 void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint16_t valorUltimaInstrucao) {
-    printf("JEQ #%04X\n", bitsEntre10e2(num));
-
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
 
@@ -609,8 +575,6 @@ void jeq(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint
 }
 
 void jlt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint16_t valorUltimaInstrucao) {
-    printf("JLT #%04X\n", bitsEntre10e2(num));
-
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
 
@@ -635,7 +599,6 @@ void jlt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint
 
 
 void jgt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint16_t valorUltimaInstrucao) {
-    printf("JGT #%04X\n", bitsEntre10e2(num));
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
  
@@ -660,7 +623,6 @@ void jgt(int num, unsigned int *PC, uint16_t *paradaPrograma, Flags *flags, uint
 }
 
 void jump(int num, unsigned int *PC, uint16_t *paradaPrograma, uint16_t valorUltimaInstrucao) {
-    printf("JMP #%04X\n", bitsEntre10e2(num));
     uint16_t valorEndereco = bitsEntre10e2(num);
     uint16_t valorPC16bits = *PC;
 
@@ -748,9 +710,9 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
             *paradaPrograma = 1;
             return;
         }
-        printf("\nNOP %d ---------------------------------------\n", ++(*qtdNop));
+        printf("\n######################## NOP %d ########################\n", ++(*qtdNop));
         printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, stack, memoriaDeDados, flags, paradaPrograma, PC, flagsPointer);
-        printf("\nFIM NOP %d -----------------------------------\n", *qtdNop);
+        printf("\n######################## FIM NOP %d ########################\n", *qtdNop);
         return;
     }
 
@@ -1072,14 +1034,13 @@ int main() {
     valorUltimaInstrucao = lerArquivo(nomeArquivo, memoriaPrograma, PCPointer);
     int comecarMemPrograma = PC;
 
-
-    printf("\nIntrucoes: ------------------------\n");
-
+    printf("\n######################## Instrucoes do Arquivo ########################\n");
     for(int i = comecarMemPrograma; i <= valorUltimaInstrucao; i+=0x0002) {
         uint16_t instrucao = memoriaPrograma[i] + (memoriaPrograma[i + 1] << 8);
         instrucoesDoPrograma(instrucao);
     }
-    printf("\nIntrucoes: ------------------------\n");
+
+
     while(PC != valorUltimaInstrucao + 0x0002) {
         unsigned int IR;
         IR = memoriaPrograma[PC] + (memoriaPrograma[PC + 1] << 8);
@@ -1091,7 +1052,7 @@ int main() {
             break;
         }
     }
-    printf("\n######################## Fim do Programa ########################\n");
+    printf("\n######################## Resultado final do Programa ########################\n");
     printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, stack, memoriaDeDados, flags, paradaProgramaPointer, PCPointer, flagsPointer);
 
 }

@@ -86,6 +86,10 @@ uint16_t complementoDois16bits(uint16_t num) {
     return ~num + 1;
 }
 
+int16_t complementoDois16bitsSinalizado(uint16_t num) {
+    return ~num + 1;
+}
+
 uint8_t complementoDois8bits(uint16_t num) {
     return ~num + 1;
 }
@@ -562,9 +566,9 @@ void cmp(int num, uint16_t registradores[], Flags *flags) {
         flags->C = 1;
     }
 
-    if(resultado > 0x7FFF || 
-        (valorRdSinalizado > 0 && valorRmSinalizado > 0 && resultadoSinalizado < 0) || 
-        (valorRdSinalizado < 0 && valorRmSinalizado < 0 && resultadoSinalizado > 0)) {
+    if(resultado > 0x7FFF ||
+        (valorRdSinalizado > 0 && complementoDois16bitsSinalizado(valorRm) > 0 && resultadoSinalizado < 0) || 
+        (valorRdSinalizado < 0 && complementoDois16bitsSinalizado(valorRm) < 0 && resultadoSinalizado > 0)) {
         flags->Ov = 1;
     }
 
@@ -697,7 +701,7 @@ void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, u
         }
     }
     if(!possuiDado) {
-        printf("Memoria de dados não foi alterada\n");
+        printf("Memoria de dados nao foi alterada\n");
     }
     
     printf("\nStack: ------------------------\n\n");
@@ -711,7 +715,7 @@ void printarPrograma(uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao, u
         }
     }
     if(!possuiAlgoPilha) {
-        printf("\nStack não foi alterada\n");
+        printf("\nStack nao foi alterada\n");
     }
 
     imprimirFlags(flags);
@@ -736,7 +740,7 @@ void mostrarRegistradores(uint16_t registradores[]) {
 
 void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stack stack[], 
     MemoriaDados memoriaDeDados[], Flags flags, uint16_t *paradaPrograma,
-    unsigned *PC, Flags *flagsPointer, uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao) {
+    unsigned *PC, Flags *flagsPointer, uint8_t memoriaPrograma[], uint16_t valorUltimaInstrucao,int *qtdNop) {
 
     //NOP and HALT
     if(numHexa == 0xFFFF || numHexa == 0x0000) {
@@ -744,9 +748,9 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
             *paradaPrograma = 1;
             return;
         }
-        printf("NOP ---------------------------------------\n");
+        printf("\nNOP %d ---------------------------------------\n", ++(*qtdNop));
         printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, stack, memoriaDeDados, flags, paradaPrograma, PC, flagsPointer);
-        printf("FIM NOP -----------------------------------\n");
+        printf("\nFIM NOP %d -----------------------------------\n", *qtdNop);
         return;
     }
 
@@ -888,6 +892,113 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP, Stac
     *paradaPrograma = 1;
 }
 
+void instrucoesDoPrograma(int numHexa) {
+    if(numHexa == 0xFFFF) {
+        printf("HALT\n");
+        return;
+    }
+    if(numHexa == 0x0000) {
+        printf("NOP\n");
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0001) {
+        if(bit11(numHexa) == 0) {
+            printf("MOV R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+            return;
+        }
+        printf("MOV R%d, #%d\n", bitsEntre10e8(numHexa), bitsEntre7e0(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0010) {
+        if(bit11(numHexa) == 1) {
+            uint16_t fistImmedPart = bitsEntre4e0(numHexa);
+            uint16_t secondImmedPart = bitsEntre10e8(numHexa);
+            uint16_t immed = (secondImmedPart << 5) + (fistImmedPart);      
+            printf("STR [R%d], #%d\n", bitsEntre7e5(numHexa), immed);
+            return;
+        }
+        printf("STR [R%d], R%d\n", bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0011) {
+        printf("LDR R%d, [R%d]\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0100) {
+        printf("ADD R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0101) {
+        printf("SUB R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0110) {
+        printf("MUL R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0111) {
+        printf("AND R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b1000) {
+        printf("ORR R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b1001) {
+        printf("NOT R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b1010) {
+        printf("XOR R%d, R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 0 && (bits1e0(numHexa) == 0b01)) {
+        printf("PUSH R%d\n", bitsEntre4e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 0 && (bits1e0(numHexa) == 0b10)) {
+        printf("POP R%d\n", bitsEntre10e8(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 0 && (bits1e0(numHexa) == 0b11)) {
+        printf("CMP R%d, R%d\n", bitsEntre7e5(numHexa), bitsEntre4e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b00)) {
+        printf("JMP #%04X\n", bitsEntre10e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b01)) {
+        printf("JEQ #%04X\n", bitsEntre10e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b10)) {
+        printf("JLT #%04X\n", bitsEntre10e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b0000 && bit11(numHexa) == 1 && (bits1e0(numHexa) == 0b11)) {
+        printf("JGT #%04X\n", bitsEntre10e2(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b1011) {
+        printf("SHR R%d, R%d, #%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e0(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b1100) {
+        printf("SHL R%d, R%d, #%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa), bitsEntre4e0(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b1101) {
+        printf("ROR R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+        return;
+    }
+    if(bitsEntre15e12(numHexa) == 0b1110) {
+        printf("ROL R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
+        return;
+    }
+    printf("Instrução não reconhecida\n");
+}
+
 uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[], unsigned *PC) {
     FILE *arquivo;
     char linha[256];
@@ -928,11 +1039,12 @@ uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[], unsigned *PC) 
 }
 
 int main() {
-
+    
     char nomeArquivo[500];
     unsigned int PC = 0x0000;
     unsigned int *PCPointer = &PC;
     unsigned valorSP = 0x8200;
+    Stack stack[65536];
     unsigned int *SP = &valorSP;
     uint16_t paradaPrograma = 0;
     uint16_t *paradaProgramaPointer = &paradaPrograma;
@@ -940,38 +1052,46 @@ int main() {
     uint16_t registradores[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t memoriaPrograma[65536];
     MemoriaDados memoriaDeDados[65536];
-    Stack stack[65536];
+    
+    int qtdNop = 0;
+    int *qtdNopPointer = &qtdNop;
     
     Flags flags = {0, 0, 0, 0};
     Flags *flagsPointer = &flags;
 
     for(int i = 0; i < 65536; i++) {
+        memoriaDeDados[i].dado = 0;
         memoriaDeDados[i].possuiDado = 0;
         stack[i].possuiDado = 0;
+        stack[i].dado = 0;
     }
 
-    printf("Digite o caminho e o nome do arquivo(não é necessario incluir .txt no final do nome do arquivo): ");
+    printf("Digite o caminho e o nome do arquivo(nao precisa incluir .txt no final do nome do arquivo): ");
     scanf("%s", nomeArquivo);
     
     valorUltimaInstrucao = lerArquivo(nomeArquivo, memoriaPrograma, PCPointer);
     int comecarMemPrograma = PC;
 
-    printf("Valor da memoria do programa: ------------------------\n");
-    for (int i = comecarMemPrograma; i <= valorUltimaInstrucao; i+=2){
-        printf("%04X:%02X%02X\n", i, memoriaPrograma[i+1], memoriaPrograma[i]);
-    }
 
+    printf("\nIntrucoes: ------------------------\n");
+
+    for(int i = comecarMemPrograma; i <= valorUltimaInstrucao; i+=0x0002) {
+        uint16_t instrucao = memoriaPrograma[i] + (memoriaPrograma[i + 1] << 8);
+        instrucoesDoPrograma(instrucao);
+    }
     printf("\nIntrucoes: ------------------------\n");
     while(PC != valorUltimaInstrucao + 0x0002) {
         unsigned int IR;
         IR = memoriaPrograma[PC] + (memoriaPrograma[PC + 1] << 8);
         PC += 0x0002;
-        decodificador(IR, registradores, SP, stack, memoriaDeDados, flags, paradaProgramaPointer, PCPointer, flagsPointer, memoriaPrograma, valorUltimaInstrucao);
+        decodificador(IR, registradores, SP, stack, memoriaDeDados, flags, 
+                        paradaProgramaPointer, PCPointer, flagsPointer, memoriaPrograma,
+                        valorUltimaInstrucao,qtdNopPointer);
         if(paradaPrograma == 1) {
             break;
         }
     }
-    printf("\nFim do Programa ----------------------\n");
+    printf("\n######################## Fim do Programa ########################\n");
     printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, stack, memoriaDeDados, flags, paradaProgramaPointer, PCPointer, flagsPointer);
 
 }

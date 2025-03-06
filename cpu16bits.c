@@ -843,7 +843,7 @@ void decodificador(int numHexa, uint16_t registradores[], unsigned int *SP,
         return;
     }
 
-    printf("Instrução não reconhecida\n");
+    printf("Instrucao nao reconhecida\n");
     *paradaPrograma = 1;
 }
 
@@ -951,19 +951,20 @@ void instrucoesDoPrograma(int numHexa) {
         printf("ROL R%d, R%d\n", bitsEntre10e8(numHexa), bitsEntre7e5(numHexa));
         return;
     }
-    printf("Instrução não reconhecida\n");
+    printf("Instrucao nao reconhecida\n");
 }
 
-uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[], unsigned *PC) {
+uint16_t lerArquivo(uint8_t memoriaPrograma[], unsigned *PC, uint16_t *paradaPrograma) {
     FILE *arquivo;
     char linha[256];
     char *token;
-    
-    strcat(nomeArquivo, ".txt");
+    char nomeArquivo[256];
+    scanf("%s", nomeArquivo);
     arquivo = fopen(nomeArquivo, "r");
     
     if (!arquivo) {
         perror("Erro ao abrir o arquivo");
+        *paradaPrograma = 1;
         return 0;
     }
     int primeiraRodada = 1;
@@ -994,8 +995,7 @@ uint16_t lerArquivo(char *nomeArquivo, uint8_t memoriaPrograma[], unsigned *PC) 
 }
 
 int main() {
-    
-    char nomeArquivo[500];
+
     unsigned int PC = 0x0000;
     unsigned int *PCPointer = &PC;
     unsigned valorSP = 0x8200;
@@ -1023,20 +1023,20 @@ int main() {
         }
     }
 
-    printf("Digite o caminho e o nome do arquivo(nao precisa incluir .txt no final do nome do arquivo): ");
-    scanf("%s", nomeArquivo);
+    printf("Digite o caminho e o arquivo: ");
     
-    valorUltimaInstrucao = lerArquivo(nomeArquivo, memoriaPrograma, PCPointer);
+    valorUltimaInstrucao = lerArquivo(memoriaPrograma, PCPointer, paradaProgramaPointer);
     int comecarMemPrograma = PC;
 
-    printf("\n######################## Instrucoes do Arquivo ########################\n");
-    for(int i = comecarMemPrograma; i <= valorUltimaInstrucao; i+=0x0002) {
-        uint16_t instrucao = memoriaPrograma[i] + (memoriaPrograma[i + 1] << 8);
-        instrucoesDoPrograma(instrucao);
+    if(!paradaPrograma) {
+        printf("\n######################## Instrucoes do Arquivo ########################\n");
+        for(int i = comecarMemPrograma; i <= valorUltimaInstrucao; i+=0x0002) {
+            uint16_t instrucao = memoriaPrograma[i] + (memoriaPrograma[i + 1] << 8);
+            instrucoesDoPrograma(instrucao);
+        }
     }
 
-
-    while(PC != valorUltimaInstrucao + 0x0002) {
+    while(PC != valorUltimaInstrucao + 0x0002 && !paradaPrograma) {
         unsigned int IR;
         IR = memoriaPrograma[PC] + (memoriaPrograma[PC + 1] << 8);
         PC += 0x0002;
@@ -1047,8 +1047,10 @@ int main() {
             break;
         }
     }
-    printf("\n######################## Resultado Final do Programa ########################\n");
-    printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, memoria , flags, paradaProgramaPointer, PCPointer, flagsPointer);
+    if(valorUltimaInstrucao) {
+        printf("\n######################## Resultado Final do Programa ########################\n");
+        printarPrograma(memoriaPrograma, valorUltimaInstrucao, registradores, SP, memoria , flags, paradaProgramaPointer, PCPointer, flagsPointer);
+    }
 
     free(memoriaPrograma);
     free(memoria);
